@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ocp_gordon"
+version = "0.1.1"
+authors = [
+  { name="Fan Gong", email="gongfan99@hotmail.com" },
+]
+description = "A Python library for Gordon Surface interpolation using B-splines."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "cadquery-ocp >= 7.8, < 7.9",
+    "numpy  >= 2, < 3",
+    "scipy",
+]
+license = "Apache-2.0"
+
+[project.urls]
+"Homepage" = "https://github.com/gongfan99/ocp_gordon"
+"Bug Tracker" = "https://github.com/gongfan99/ocp_gordon/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+# typing stubs for the OCP CAD kernel
+stubs = [
+    "cadquery-ocp-stubs >= 7.8, < 7.9"
+]
+
+[tool.setuptools.packages.find]
+where = ["src_py"]
