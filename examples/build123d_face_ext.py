@@ -1,5 +1,5 @@
 # %%
-# This file creates extend the class build123d.Face to include gorden_surface()
+# This file extends the class build123d.Face to include gorden_surface()
 
 from typing import Union, List
 from build123d import VectorLike, Vector, Edge, Face, ShapeList  # type: ignore
