@@ -2,7 +2,7 @@
 
 This library provides a Python implementation for creating Gordon surfaces, which are a method for interpolating a network of curves to generate a smooth surface. It is designed to be compatible with CadQuery's OCP and leverages B-spline mathematics.
 
-It is adapted from the original C++ code in [occ_gordon](https://github.com/rainman110/occ_gordon)
+It is a pure Python library which is adapted from the original C++ code in [occ_gordon](https://github.com/rainman110/occ_gordon)
 
 ## Features
 
@@ -53,7 +53,7 @@ python test_all.py
 
 ## Notable Difference from C++ Code
 
-- In `intersect_bsplines.py`, a polyfilled `math_BFGS` is used instead of `math_FRPR` because both `math_BFGS` and `math_FRPR` are not usable in OCP because OCP does not expose `math_Vector`. The `activate()` function in this file has also been changed since the original one does not work well.
+- In `intersect_bsplines.py`, a polyfilled `math_BFGS` is used instead of `math_FRPR`. Both `math_BFGS` and `math_FRPR` are not usable in OCP because OCP does not expose `math_Vector`. The `activate()` function in this file has also been changed since the original one does not work well.
 - In the `_solve()` function in `bspline_approx_interp.py`, the regularization is added to prevent singular matrix which occurs in some cases for example when the input curve is a bspline converted from a circle.
 - A new file `misc.py` is added to implement some missing classes/functions from OCP. The major ones are `clone_bspline` and `math_BFGS`.
 
