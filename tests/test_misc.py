@@ -393,7 +393,7 @@ def test_math_bfgs_quadratic_function():
 
 
 if __name__ == "__main__":
-    if 1:
+    if 0:
         pytest.main([f'{__file__}::test_math_bfgs_CurveCurveDistanceObjective', "-v"])
     else:
         pytest.main([f'{__file__}', "-v"])

@@ -267,7 +267,7 @@ class TestInterpolateCurveNetwork:
     # also very complex to set up with real OCP objects.
 
 if __name__ == "__main__":
-    if 1:
+    if 0:
         pytest.main([f'{__file__}::TestInterpolateCurveNetwork::test_interpolate_curve_network_function_3_4', "-v"])
     else:
         pytest.main([f'{__file__}', "-v"])
