@@ -38,13 +38,14 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Generate Release Notes (Conventional Commits)
-        uses: TriPSs/conventional-changelog-action@v5.1.0
+        uses: TriPSs/conventional-changelog-action@v5
         id: changelog
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           tag-prefix: "v"
           output-file: false
           skip-commit: true
+          skip-git-pull: true
 
       - name: Create GitHub Release with Conventional Notes
         uses: softprops/action-gh-release@v2.0.6
