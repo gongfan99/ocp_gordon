@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,6 +31,11 @@ jobs:
 
       - name: Publish to PyPI (via Trusted Publisher OIDC)
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Switch to main branch
+        run: |
+          git fetch origin main --unshallow
+          git checkout main
 
       - name: Generate Release Notes (Conventional Commits)
         uses: TriPSs/conventional-changelog-action@v5

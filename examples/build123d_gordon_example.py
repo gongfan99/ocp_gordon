@@ -14,6 +14,7 @@ from build123d_face_ext import Face_ext
 
 # %%
 
+# simple sine wave surface
 def create_test_curves1():
     """
     Create test curves that form a proper intersecting network for Gordon surface interpolation.
@@ -73,6 +74,7 @@ def create_test_curves1():
     
     return profiles, guides
 
+# aircraft engine shell
 def create_test_curves2():
     """
     Create test curves that form a proper intersecting network for Gordon surface interpolation.

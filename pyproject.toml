@@ -22,6 +22,17 @@ dependencies = [
     "numpy  >= 2, < 3",
     "scipy",
 ]
+keywords = [
+    "3d models",
+    "3d printing",
+    "3d",
+    "brep",
+    "cad",
+    "cadquery",
+    "build123d",
+    "opencscade",
+    "python",
+]
 license = "Apache-2.0"
 
 [project.urls]

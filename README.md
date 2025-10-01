@@ -1,8 +1,8 @@
 # Gordon Surface Library for CadQuery's OCP
 
-This library provides a Python implementation for creating Gordon surfaces, which are a method for interpolating a network of curves to generate a smooth surface. It is designed to be compatible with CadQuery's OCP and leverages B-spline mathematics.
+This library provides a Python implementation for creating Gordon surfaces, a method for interpolating a network of curves to generate a smooth surface. It is designed to be compatible with CadQuery's OCP and leverages B-spline mathematics.
 
-It is a pure Python library which is adapted from the original C++ code in [occ_gordon](https://github.com/rainman110/occ_gordon)
+The implementation is written entirely in Python and is adapted from the original C++ code in [occ_gordon](https://github.com/rainman110/occ_gordon)
 
 ## Features
 
