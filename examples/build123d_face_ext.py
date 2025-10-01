@@ -53,9 +53,9 @@ class Face_ext(Face):
     @classmethod
     def gordon_surface(
         cls,
-        profiles: Union[List[Edge], ShapeList[Edge]],
-        guides: Union[List[Edge], ShapeList[Edge]],
-        tolerance: float = 1e-4,
+        profiles: List[Edge] | ShapeList[Edge],
+        guides: List[Edge] | ShapeList[Edge],
+        tolerance: float = 3e-4,
     ):
         """
         Creates a Gordon surface from a network of profile and guide curves.
@@ -72,10 +72,10 @@ class Face_ext(Face):
         ocp_guides: List[Geom_Curve] = []
 
         for edge in profiles:
-            ocp_profiles.append(BRep_Tool.Curve_s(edge.wrapped, edge.param_at(0), edge.param_at(1)))
+            ocp_profiles.append(BRep_Tool.Curve_s(edge.wrapped, 0, 1))
 
         for edge in guides:
-            ocp_guides.append(BRep_Tool.Curve_s(edge.wrapped, edge.param_at(0), edge.param_at(1)))
+            ocp_guides.append(BRep_Tool.Curve_s(edge.wrapped, 0, 1))
 
         gordon_bspline_surface = interpolate_curve_network(
             ocp_profiles, ocp_guides, tolerance=tolerance
@@ -86,8 +86,8 @@ class Face_ext(Face):
     # @classmethod
     # def gordon_surface_debug(
     #     cls,
-    #     profiles: Union[List[Edge], ShapeList[Edge]],
-    #     guides: Union[List[Edge], ShapeList[Edge]],
+    #     profiles: List[Edge] | ShapeList[Edge],
+    #     guides: List[Edge] | ShapeList[Edge],
     #     tolerance: float = 1e-4,
     # ):
     #     """

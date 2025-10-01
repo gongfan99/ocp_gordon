@@ -26,10 +26,10 @@ def create_test_curves1():
     guides: list[Edge] = []
     
     # Define grid parameters
-    num_profiles = 3
-    num_guides = 4
-    u_range = 8.0  # Range in u-direction (profiles)
-    v_range = 5.0  # Range in v-direction (guides)
+    num_profiles = 8
+    num_guides = 8
+    u_range = 5.0  # Range in u-direction (profiles)
+    v_range = 8.0  # Range in v-direction (guides)
     
     # Create intersection points grid
     # This defines where profiles and guides should intersect
@@ -111,8 +111,8 @@ if __name__ == "__main__":
     
     # Create test curves
     print("Creating test curves...")
-    # profiles, guides = create_test_curves1()
-    profiles, guides = create_test_curves2()
+    profiles, guides = create_test_curves1()
+    # profiles, guides = create_test_curves2()
     show(*profiles, *guides, reset_camera=Camera.KEEP)
     
     print(f"Created {len(profiles)} profile curves and {len(guides)} guide curves")
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     
     if 1:
         face10 = Face_ext.gordon_surface(
-            profiles, guides, tolerance=1e-4
+            profiles, guides, tolerance=3e-4
         )
 
         print("Successfully created Gordon surface!")
