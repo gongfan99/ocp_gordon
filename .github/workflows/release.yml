@@ -32,7 +32,9 @@ jobs:
         run: python -m build
 
       - name: Publish to PyPI (via Trusted Publisher OIDC)
-        uses: pypa/gh-action-pypi-publish@v1.9.0
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository_url: https://test.pypi.org/legacy/
 
       - name: Generate Release Notes (Conventional Commits)
         uses: TriPSs/conventional-changelog-action@v5.1.0
