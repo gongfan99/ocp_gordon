@@ -9,18 +9,21 @@ import pytest
 import numpy as np
 import sys
 import os
-from OCP.Geom import Geom_BSplineCurve
+import math
+
+from OCP.Geom import Geom_BSplineCurve, Geom_Circle
 from OCP.GeomAPI import GeomAPI_PointsToBSpline
 from OCP.TColgp import TColgp_Array1OfPnt
-from OCP.gp import gp_Pnt
+from OCP.gp import gp_Pnt, gp_Ax1, gp_Ax2, gp_Dir, gp_Trsf
 from OCP.GeomAbs import GeomAbs_Shape
-import math
+from OCP.GeomConvert import GeomConvert
 
 # Add the parent directory to the path to import the module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Import the module to test
 from src_py.ocp_gordon.internal.intersect_bsplines import IntersectBSplines, BoundingBox
+from src_py.ocp_gordon.internal.misc import clone_bspline
 
 
 def create_bspline_from_points(points):
@@ -37,7 +40,12 @@ def create_bspline_from_points(points):
     array = TColgp_Array1OfPnt(1, n_points)
     
     for i, point in enumerate(points, 1):
-        array.SetValue(i, gp_Pnt(*point))
+        if len(point) == 1:
+            array.SetValue(i, gp_Pnt(point[0], 0, 0))
+        elif len(point) == 2:
+            array.SetValue(i, gp_Pnt(point[0], point[1], 0))
+        elif len(point) > 2:
+            array.SetValue(i, gp_Pnt(*point))
     
     # Create approximator with tight tolerance to ensure curve passes through points
     approximator = GeomAPI_PointsToBSpline(array, 3, 8, GeomAbs_Shape.GeomAbs_C2, 1e-9)
@@ -109,6 +117,32 @@ class TestIntersectBSplines:
         p1 = intersections[0]["point"]
         u = intersections[0]["parmOnCurve1"]
         v = intersections[0]["parmOnCurve2"]
+        # p1 = line1.Value(u)
+        p2 = line2.Value(v) # Re-evaluate p2 using the parameter from the intersection result
+        # print(f'p1=[{p1.X()}, {p1.Y()}, {p1.Z()}]')
+        # print(f'p2=[{p2.X()}, {p2.Y()}, {p2.Z()}]')
+        
+        assert abs(p1.X() - 1.0) < 1e-6
+        assert abs(p1.Y() - 1.0) < 1e-6
+        assert abs(p1.Z() - 0.0) < 1e-6
+        assert abs(p2.X() - 1.0) < 1e-6
+        assert abs(p2.Y() - 1.0) < 1e-6
+        assert abs(p2.Z() - 0.0) < 1e-6
+    
+    def test_intersect_straight_lines_end_crossing(self):
+        """Test intersection of parallel lines (should not intersect)."""
+        line1 = create_line_segment((0, 0, 0), (2, 2, 0))
+        line2 = create_line_segment((0, 2, 0), (1, 1, 0))
+        
+        intersections = IntersectBSplines(line1, line2, tolerance=1e-6)
+        
+        # Should find exactly one intersection at (1, 1, 0)
+        assert len(intersections) == 1
+        
+        # Check that the intersection point is approximately (1, 1, 0)
+        p1 = intersections[0]["point"]
+        u = intersections[0]["parmOnCurve1"]
+        v = intersections[0]["parmOnCurve2"]
         p2 = line2.Value(v) # Re-evaluate p2 using the parameter from the intersection result
         
         assert abs(p1.X() - 1.0) < 1e-6
@@ -117,6 +151,16 @@ class TestIntersectBSplines:
         assert abs(p2.X() - 1.0) < 1e-6
         assert abs(p2.Y() - 1.0) < 1e-6
         assert abs(p2.Z() - 0.0) < 1e-6
+    
+    def test_intersect_straight_lines_not_crossing(self):
+        """Test intersection of parallel lines (should not intersect)."""
+        line1 = create_line_segment((0, 0, 0), (2, 2, 0))
+        line2 = create_line_segment((0, 2, 0), (0.5, 1.5, 0))
+        
+        intersections = IntersectBSplines(line1, line2, tolerance=1e-6)
+        
+        # lines should not intersect
+        assert len(intersections) == 0
     
     def test_intersect_parallel_lines(self):
         """Test intersection of parallel lines (should not intersect)."""
@@ -240,6 +284,48 @@ class TestIntersectBSplines:
         assert abs(intersections[0]["parmOnCurve1"] - 0.5) < 1e-6
         assert abs(intersections[0]["parmOnCurve2"] - 0.5) < 1e-6
 
+    def test_intersect_spline_and_circle(self):
+        radius = 10
+        length = 36
+
+        outer = create_bspline_from_points([(0.8, 1), (1.1, 0.35), (1.0, 0)])
+        inner = create_bspline_from_points([(0.9, 0), (0.85, 0.35), (0.7, 1)])
+        num_points = 40
+        points = *[outer.Value(i/num_points) for i in range(num_points+1)], *[inner.Value(i/num_points) for i in range(num_points+1)]
+        points = [(p.X() * radius, p.Y() * length) for p in points]
+
+        guide1 = create_bspline_from_points(points)
+        
+        def rotate(curve: Geom_BSplineCurve, deg: float):
+            trsf = gp_Trsf()
+            trsf.SetRotation(gp_Ax1(gp_Pnt(0,0,0), gp_Dir(0, 1, 0)), math.radians(deg))
+            curve2 = clone_bspline(curve)
+            curve2.Transform(trsf)
+            return curve2
+        
+        guides = [guide1, rotate(guide1, 90), rotate(guide1, 180), rotate(guide1, 270)]
+
+        def to_circle(v: gp_Pnt):
+            r = math.sqrt(v.X()*v.X()+v.Z()*v.Z())
+            # print(f'v=[{v.X()}, {v.Y()}, {v.Z()}]')
+            # print(f'r={r}')
+            ax2 = gp_Ax2(gp_Pnt(0, v.Y(), 0), gp_Dir(0, -1, 0), gp_Dir(1, 0, 0))
+            circle = Geom_Circle(ax2, r)
+            bspline = GeomConvert.CurveToBSplineCurve_s(circle)
+            return bspline
+        
+        profiles = [to_circle(guide1.Value(0)), to_circle(guide1.Value(1))]
+
+        for i in range(len(profiles)):
+            for j in range(len(guides)):
+                intersections = IntersectBSplines(profiles[i], guides[j], tolerance=1e-6)
+                # print(f"distance({i},{j})=", profiles[i].Value(0).Distance(guides[j].Value(0)))
+                # u = 0
+                # p = profiles[i].Value(0)
+                # print(f"profiles[{i}](0)=[{p.X()}, {p.Y()}, {p.Z()}]")
+                assert len(intersections) == (2 if j == 0 else 1), f'#{i} profile and #{j} guide not intersect'
+
+
     def test_intersect_tangent_curves(self):
         """Test intersection of two curves that are tangent at a point."""
         # Create a parabola-like curve
@@ -269,13 +355,13 @@ class TestIntersectBSplines:
         if not found_tangent_intersection:
             for intersection in intersections:
                 p = intersection["point"]
-                print(f'p=[{p.X()}, {p.Y()}, {p.Z()}]')
+                # print(f'p=[{p.X()}, {p.Y()}, {p.Z()}]')
 
         assert found_tangent_intersection
 
 
 if __name__ == "__main__":
     if 0:
-        pytest.main([f'{__file__}::TestIntersectBSplines::test_intersect_3d_curves', "-v"])
+        pytest.main([f'{__file__}::TestIntersectBSplines::test_intersect_spline_and_circle', "-v"])
     else:
         pytest.main([f'{__file__}', "-v"])

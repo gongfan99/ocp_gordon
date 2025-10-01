@@ -1,6 +1,7 @@
 import math
 import sys
 from typing import List, Tuple, Any, TypedDict
+from scipy.optimize import minimize_scalar, OptimizeResult
 
 from OCP.gp import gp_Pnt, gp_Vec
 from OCP.Geom import Geom_Curve, Geom_BSplineCurve
@@ -159,11 +160,11 @@ class CurveCurveDistanceObjective(math_MultipleVarFunctionWithGradient):
 
     # @staticmethod
     # def activate(z: float) -> float:
-    #     return 1.0 * math.atan(z) / math.pi + 0.5
+    #     return 1.25 * math.atan(z) / math.pi + 0.5
 
     # @staticmethod
     # def d_activate(z: float) -> float:
-    #     return 1.0 / (math.pi * (1.0 + z**2))
+    #     return 1.25 / (math.pi * (1.0 + z**2))
     
     def getUParam(self, x0: float) -> float:
         umin = self.m_c1.FirstParameter()
@@ -324,46 +325,116 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
         c1 = BSplineAlgorithms.trimCurve(curve1, boxes.b1.range.min, boxes.b1.range.max)
         c2 = BSplineAlgorithms.trimCurve(curve2, boxes.b2.range.min, boxes.b2.range.max)
 
+        _tolerance_distance = max(1e-10, min(1e-5, tolerance))
+
+        # When the intersection is at the endpoints, it is hard for 2d minimizer to converge.
+        # So we check the endpoints first before using the 2d minimizer
+        # C++ code does not have this checking.        
+
+        def get_mid_point(u: float, v: float):
+            p1 = c1.Value(u)
+            p2 = c2.Value(v)
+            p1.BaryCenter(1.0, p2, 1.0)
+            return p1
+        
+        # check if cx1.Value(param1) is on cx2
+        def check_point_on_curve2(cx1: Geom_BSplineCurve, param1: float, cx2: Geom_BSplineCurve):
+            v = cx2.FirstParameter()
+            if cx1.Value(param1).Distance(cx2.Value(v)) < _tolerance_distance:
+                return param1, v
+            
+            v = cx2.LastParameter()
+            if cx1.Value(param1).Distance(cx2.Value(v)) < _tolerance_distance:
+                return param1, v
+        
+            res = minimize_scalar(
+                lambda v: cx1.Value(param1).SquareDistance(cx2.Value(v)),
+                bounds=(cx2.FirstParameter(), cx2.LastParameter()),
+                method="Bounded",
+                options={"xatol": 0.1 * _tolerance_distance * _tolerance_distance},
+            )
+            if res.success and res.fun < _tolerance_distance * _tolerance_distance: # type: ignore
+                return param1, res.x # type: ignore
+            else:
+                return None, None
+
+        u, v = check_point_on_curve2(c1, c1.FirstParameter(), c2)
+        if u is not None and v is not None:
+            result: IntersectType = {
+                "parmOnCurve1": u,
+                "parmOnCurve2": v,
+                "point": get_mid_point(u, v) # c1.Value(c1.FirstParameter())
+            }
+            results.append(result)
+            continue
+
+        u, v = check_point_on_curve2(c1, c1.LastParameter(), c2)
+        if u is not None and v is not None:
+            result: IntersectType = {
+                "parmOnCurve1": u,
+                "parmOnCurve2": v,
+                "point": get_mid_point(u, v) # c1.Value(c1.LastParameter())
+            }
+            results.append(result)
+            continue
+
+        v, u = check_point_on_curve2(c2, c2.FirstParameter(), c1)
+        if u is not None and v is not None:
+            result: IntersectType = {
+                "parmOnCurve1": u,
+                "parmOnCurve2": v,
+                "point": get_mid_point(u, v) # c2.Value(c2.FirstParameter())
+            }
+            results.append(result)
+            continue
+
+        v, u = check_point_on_curve2(c2, c2.LastParameter(), c1)
+        if u is not None and v is not None:
+            result: IntersectType = {
+                "parmOnCurve1": u,
+                "parmOnCurve2": v,
+                "point": get_mid_point(u, v) # c2.Value(c2.LastParameter())
+            }
+            results.append(result)
+            continue
+
+        # C++ code starts from here. Hence, it only uses 2d minimizer without first checking intersection at endpoints
         obj = CurveCurveDistanceObjective(c1, c2)
 
         # Use custom math_Vector class for optimizer inputs
         guess = math_Vector(1, 2)
-        guess.SetValue(1, 0.)
-        guess.SetValue(2, 0.)
-
-        # Use imported OCP math_BFGS
+        guess.SetValue(1, 0.5)
+        guess.SetValue(2, 0.5)
 
         # C++ uses 1e-10 as the aTolenrance for math_FRPR which seems to be an error
-        _tolerance_distance = max(1e-10, tolerance)
         converged = math_BFGS(obj, guess, _tolerance_distance * _tolerance_distance)
 
         if not converged:
-            print("Warning: minimization found no intersection in `IntersectBSplines`.", file=sys.stderr)
-            print(f'boxes.b1.range.min={boxes.b1.range.min}, boxes.b1.range.max={boxes.b1.range.max}')
-            print(f'boxes.b2.range.min={boxes.b2.range.min}, boxes.b2.range.max={boxes.b2.range.max}')
-            print(f'tolerance={tolerance}')
-            # d12 = c1.Value(0).XYZ() - c2.Value(0).XYZ()
-            # print(f'd12=[{d12.X(), d12.Y(), d12.Z()}]')
+            # print("Warning: `IntersectBSplines` not converge")
+            # print(f'boxes.b1.range=[{boxes.b1.range.min}, {boxes.b1.range.max}], b2.range=[{boxes.b2.range.min}, {boxes.b2.range.max}]')
+            # print(f'tolerance={tolerance}')
             continue
 
         u = obj.getUParam(guess.Value(1))
         v = obj.getVParam(guess.Value(2))
 
+        if u < min(c1.FirstParameter(), c1.LastParameter()) - _tolerance_distance or u > max(c1.FirstParameter(), c1.LastParameter()) + _tolerance_distance:
+            continue
+
+        if v < min(c2.FirstParameter(), c2.LastParameter()) - _tolerance_distance or v > max(c2.FirstParameter(), c2.LastParameter()) + _tolerance_distance:
+            continue
+
         distance = c1.Value(u).Distance(c2.Value(v))
+        # print(f'distance={distance}, _tolerance_distance={_tolerance_distance}, tolerance={tolerance}')
         
-        if distance < _tolerance_distance:
-            p1 = curve1.Value(u)
-            p2 = curve2.Value(v)
-            p1.BaryCenter(1.0, p2, 1.0)
+        if distance < tolerance: # _tolerance_distance not work well
             result: IntersectType = {
                 "parmOnCurve1": u,
                 "parmOnCurve2": v,
-                "point": p1
+                "point": get_mid_point(u, v)
             }
             results.append(result)
-            # print(f'u={u}, v={v}, distance={distance}')
-            # print(f'p1=[{p1.X()}, {p1.Y()}, {p1.Z()}]')
-            # print(f'p2=[{p2.X()}, {p2.Y()}, {p2.Z()}]')
+
     
     return results
 

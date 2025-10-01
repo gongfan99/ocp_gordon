@@ -7,8 +7,6 @@ functionality with build123d's OCP integration.
 # %%
 from typing import Union, List
 from build123d import *  # type: ignore
-import math
-from build123d import Shape
 import numpy as np
 from ocp_vscode import show, Camera
 

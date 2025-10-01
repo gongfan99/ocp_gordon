@@ -247,6 +247,8 @@ class InterpolateCurveNetwork:
                         f"U-directional B-spline {spline_u_idx} and V-directional B-spline {spline_v_idx} have more than two intersections! "
                         "Closed in both U and V directions surface isn't supported at this time."
                     )
+        # print(initial_intersection_params_u)
+        # print(initial_intersection_params_v)
 
     def _make_curves_compatible(self):
         """

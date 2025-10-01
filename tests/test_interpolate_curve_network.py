@@ -125,59 +125,65 @@ class TestInterpolateCurveNetwork:
         # Further assertions could check surface properties if needed
         # e.g., degree, number of poles, evaluation at intersection points
 
-    def test_interpolate_curve_network_function_3_4(self):
-        profiles: list[Geom_BSplineCurve] = []
-        guides: list[Geom_BSplineCurve] = []
-        
+    def test_interpolate_curve_network_function_3_4(self):        
         # Define grid parameters
-        num_profiles = 3
-        num_guides = 4
-        u_range = 5.0  # Range in u-direction (profiles)
-        v_range = 5.0  # Range in v-direction (guides)
-        
-        # Create intersection points grid
-        # This defines where profiles and guides should intersect
-        intersection_points = np.zeros((num_profiles, num_guides, 3))
-        
-        for i in range(num_profiles):
-            for j in range(num_guides):
-                # Create a grid of points with some variation for a more interesting surface
-                u = i * u_range / (num_profiles - 1) if num_profiles > 1 else 0
-                v = j * v_range / (num_guides - 1) if num_guides > 1 else 0
-                
-                # Add some 3D variation to make the surface more interesting
-                z = 0.5 * np.sin(u * 0.5) * np.cos(v * 0.5)
-                
-                intersection_points[i, j] = [u, v, z]
-        
-        # Create profile curves (u-direction)
-        for i in range(num_profiles):
-            points: list[gp_Pnt] = []
-            
-            # Each profile curve goes through all guide intersection points at this profile index
-            for j in range(num_guides):
-                x, y, z = intersection_points[i, j]
-                points.append(gp_Pnt(x, y, z))
-            
-            # Create B-spline curve through these points
-            bspline_curve = create_bspline_curve(points)
-            profiles.append(bspline_curve)
-        
-        # Create guide curves (v-direction)
-        for j in range(num_guides):
-            points: list[gp_Pnt] = []
-            
-            # Each guide curve goes through all profile intersection points at this guide index
-            for i in range(num_profiles):
-                x, y, z = intersection_points[i, j]
-                points.append(gp_Pnt(x, y, z))
-            
-            # Create B-spline curve through these points
-            bspline_curve = create_bspline_curve(points)
-            guides.append(bspline_curve)
+        data_set = [
+            (3, 4, 5.0, 5.0),
+            (4, 6, 5.0, 8.0),
+            (4, 4, 8.0, 5.0),
+        ]
+        for (num_profiles, num_guides, u_range, v_range) in data_set:
+            profiles: list[Geom_BSplineCurve] = []
+            guides: list[Geom_BSplineCurve] = []
 
-        surface = interpolate_curve_network(list(profiles), list(guides))
-        assert isinstance(surface, Geom_BSplineSurface)
+            # num_profiles = 3
+            # num_guides = 4
+            # u_range = 5.0  # Range in u-direction (profiles)
+            # v_range = 5.0  # Range in v-direction (guides)
+            
+            # Create intersection points grid
+            # This defines where profiles and guides should intersect
+            intersection_points = np.zeros((num_profiles, num_guides, 3))
+            
+            for i in range(num_profiles):
+                for j in range(num_guides):
+                    # Create a grid of points with some variation for a more interesting surface
+                    u = i * u_range / (num_profiles - 1) if num_profiles > 1 else 0
+                    v = j * v_range / (num_guides - 1) if num_guides > 1 else 0
+                    
+                    # Add some 3D variation to make the surface more interesting
+                    z = 0.5 * np.sin(u * 0.5) * np.cos(v * 0.5)
+                    
+                    intersection_points[i, j] = [u, v, z]
+            
+            # Create profile curves (u-direction)
+            for i in range(num_profiles):
+                points: list[gp_Pnt] = []
+                
+                # Each profile curve goes through all guide intersection points at this profile index
+                for j in range(num_guides):
+                    x, y, z = intersection_points[i, j]
+                    points.append(gp_Pnt(x, y, z))
+                
+                # Create B-spline curve through these points
+                bspline_curve = create_bspline_curve(points)
+                profiles.append(bspline_curve)
+            
+            # Create guide curves (v-direction)
+            for j in range(num_guides):
+                points: list[gp_Pnt] = []
+                
+                # Each guide curve goes through all profile intersection points at this guide index
+                for i in range(num_profiles):
+                    x, y, z = intersection_points[i, j]
+                    points.append(gp_Pnt(x, y, z))
+                
+                # Create B-spline curve through these points
+                bspline_curve = create_bspline_curve(points)
+                guides.append(bspline_curve)
+
+            surface = interpolate_curve_network(list(profiles), list(guides), tolerance=0.0003)
+            assert isinstance(surface, Geom_BSplineSurface)
 
     def test_init_invalid_input_less_than_two_profiles(self):
         profiles = [self.u_curve1]
@@ -261,7 +267,7 @@ class TestInterpolateCurveNetwork:
     # also very complex to set up with real OCP objects.
 
 if __name__ == "__main__":
-    if 0:
-        pytest.main([f'{__file__}::TestInterpolateCurveNetwork::test_surface_accessors_after_perform', "-v"])
+    if 1:
+        pytest.main([f'{__file__}::TestInterpolateCurveNetwork::test_interpolate_curve_network_function_3_4', "-v"])
     else:
         pytest.main([f'{__file__}', "-v"])

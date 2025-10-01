@@ -256,9 +256,12 @@ def math_BFGS(
 
     x0 = [aX(i) for i in range(1, nb_variables+1)]
     res = minimize(f, x0=x0, jac=g, method='BFGS', tol=aTolerance)
+
+    if not res.success:
+        return False
     
     for i in range(nb_variables):
         aX.SetValue(aX.Lower() + i, res.x[i])
-    return res.success
+    return True
 
 

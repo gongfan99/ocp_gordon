@@ -19,6 +19,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
+# from src_py.ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
 
 # %%
 def convert_bspline_to_edge(curve: Geom_Curve | Geom_BSplineCurve) -> Edge:

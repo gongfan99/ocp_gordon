@@ -35,7 +35,7 @@ jobs:
         id: changelog
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
+          tag-prefix: "v"
           output-file: false
           skip-commit: true
 

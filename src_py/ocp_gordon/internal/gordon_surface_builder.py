@@ -356,5 +356,7 @@ class GordonSurfaceBuilder:
                 p_guid = spline_v.Value(spline_v_param)
                 distance = p_prof.Distance(p_guid)
                 
+                # print(f'u_param_idx={u_param_idx}, v_param_idx={v_param_idx}, distance={distance}, splines_scale={splines_scale}, tol={tol}')
                 if distance > splines_scale * tol:
+                    print(f'u_param_idx={u_param_idx}, v_param_idx={v_param_idx}, distance={distance}, splines_scale={splines_scale}, tol={tol}')
                     raise error("B-spline network is incompatible (e.g. wrong parametrization) or intersection parameters are in a wrong order!", ErrorCode.MATH_ERROR)
