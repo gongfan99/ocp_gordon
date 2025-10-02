@@ -37,9 +37,9 @@ class BSplineApproxInterp:
         for i in range(points.Lower(), points.Upper() + 1):
             self.m_pnts.SetValue(i, points(i))
 
-        self.m_index_of_approximated: List[int] = list(range(points.Length()))
-        self.m_index_of_interpolated: List[int] = []
-        self.m_index_of_kinks: List[int] = []
+        self.m_index_of_approximated: list[int] = list(range(points.Length()))
+        self.m_index_of_interpolated: list[int] = []
+        self.m_index_of_kinks: list[int] = []
 
         self.m_degree = degree
         self.m_ncp = n_control_points
@@ -85,7 +85,7 @@ class BSplineApproxInterp:
         last = (self.m_pnts.Length() - 1) in self.m_index_of_interpolated
         return first and last
 
-    def _compute_parameters(self, alpha: float) -> List[float]:
+    def _compute_parameters(self, alpha: float) -> list[float]:
         sum_len = 0.0
         n_points = self.m_pnts.Length()
         params = [0.0] * n_points
@@ -112,7 +112,7 @@ class BSplineApproxInterp:
             params[n_points - 1] = 1.0
         return params
 
-    def _compute_knots(self, ncp: int, params: List[float]) -> Tuple[List[float], List[int]]:
+    def _compute_knots(self, ncp: int, params: list[float]) -> tuple[list[float], list[int]]:
         order = self.m_degree + 1
         if ncp < order:
             raise error("Number of control points too small!", ErrorCode.MATH_ERROR)
@@ -120,8 +120,8 @@ class BSplineApproxInterp:
         umin = min(params)
         umax = max(params)
 
-        knots: List[float] = [0.0] * (ncp - self.m_degree + 1)
-        mults: List[int] = [0] * (ncp - self.m_degree + 1)
+        knots: list[float] = [0.0] * (ncp - self.m_degree + 1)
+        mults: list[int] = [0] * (ncp - self.m_degree + 1)
 
         # fill multiplicity at start
         knots[0] = umin
@@ -144,7 +144,7 @@ class BSplineApproxInterp:
 
         return knots, mults
 
-    def fit_curve(self, initial_params: Optional[List[float]] = None) -> ApproxResult:
+    def fit_curve(self, initial_params: list[float] | None = None) -> ApproxResult:
         params = initial_params if initial_params is not None and initial_params else self._compute_parameters(0.5)
 
         if len(params) != self.m_pnts.Length():
@@ -163,7 +163,7 @@ class BSplineApproxInterp:
 
         return self._solve(params, knots_array, mults_array)
 
-    def fit_curve_optimal(self, initial_params: Optional[List[float]] = None, max_iter: int = 10) -> ApproxResult:
+    def fit_curve_optimal(self, initial_params: list[float] | None = None, max_iter: int = 10) -> ApproxResult:
         params = initial_params if initial_params is not None and initial_params else self._compute_parameters(0.5)
 
         if len(params) != self.m_pnts.Length():
@@ -211,7 +211,7 @@ class BSplineApproxInterp:
             # Fallback if projection fails, return initial parameter with large error
             return ProjectResult(initial_param, float('inf'))
 
-    def _get_continuity_matrix(self, n_ctr_pnts: int, contin_cons: int, params: List[float], flat_knots: TColStd_Array1OfReal) -> np.ndarray:
+    def _get_continuity_matrix(self, n_ctr_pnts: int, contin_cons: int, params: list[float], flat_knots: TColStd_Array1OfReal) -> np.ndarray:
         continuity_entries = np.zeros((contin_cons, n_ctr_pnts))
 
         # Need to convert single float to TColStd_Array1OfReal for bspline_basis_mat
@@ -240,7 +240,7 @@ class BSplineApproxInterp:
         
         return continuity_entries
 
-    def _solve(self, params: List[float], knots: TColStd_Array1OfReal, mults: TColStd_Array1OfInteger) -> ApproxResult:
+    def _solve(self, params: list[float], knots: TColStd_Array1OfReal, mults: TColStd_Array1OfInteger) -> ApproxResult:
         # compute flat knots
         n_flat_knots = BSplCLib.KnotSequenceLength_s(mults, self.m_degree, False)
         flat_knots_array = TColStd_Array1OfReal(1, n_flat_knots)
@@ -383,7 +383,7 @@ class BSplineApproxInterp:
         
         return ApproxResult(curve=result_curve, error=max_error)
 
-    def _optimize_parameters(self, curve: Geom_Curve, params: List[float]):
+    def _optimize_parameters(self, curve: Geom_Curve, params: list[float]):
         # optimize each parameter by finding it's position on the curve
         for idx in self.m_index_of_approximated:
             pnt_idx = self.m_pnts.Lower() + idx

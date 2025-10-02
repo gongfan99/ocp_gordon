@@ -29,10 +29,10 @@ class GordonSurfaceBuilder:
     """
     
     def __init__(self,
-                 profiles: List[Geom_BSplineCurve],
-                 guides: List[Geom_BSplineCurve],
-                 intersection_params_spline_u: List[float],
-                 intersection_params_spline_v: List[float],
+                 profiles: list[Geom_BSplineCurve],
+                 guides: list[Geom_BSplineCurve],
+                 intersection_params_spline_u: list[float],
+                 intersection_params_spline_v: list[float],
                  tolerance: float):
         """
         Initialize the Gordon surface builder.
@@ -98,8 +98,8 @@ class GordonSurfaceBuilder:
     # Due to circular import issues, these two functions are implemented directly in this file instead of being imported from bspline_algorithms.py    
     @staticmethod
     def _points_to_surface_internal(points: TColgp_Array2OfPnt,
-                                    u_params: List[float],
-                                    v_params: List[float],
+                                    u_params: list[float],
+                                    v_params: list[float],
                                     make_u_closed: bool,
                                     make_v_closed: bool) -> Geom_BSplineSurface:
         """
@@ -107,7 +107,7 @@ class GordonSurfaceBuilder:
         Matches the C++ BSplineAlgorithms::pointsToSurface function.
         """
         # 1. Interpolate curves in U-direction (along rows)
-        u_direction_curves: List[Geom_BSplineCurve] = []
+        u_direction_curves: list[Geom_BSplineCurve] = []
         for col_idx in range(points.LowerCol(), points.UpperCol() + 1):
             # Extract a row of points as a 1D array
             points_u_line = BSplineAlgorithms._pnt_array2_get_column(points, col_idx)
@@ -126,9 +126,9 @@ class GordonSurfaceBuilder:
         return skinner.surface()
 
     @staticmethod
-    def _create_common_knots_vector_surface_internal(surfaces_vector: List[Geom_BSplineSurface],
+    def _create_common_knots_vector_surface_internal(surfaces_vector: list[Geom_BSplineSurface],
                                                      direction: SurfaceDirection,
-                                                     tol: float = 1e-7) -> List[Geom_BSplineSurface]:
+                                                     tol: float = 1e-7) -> list[Geom_BSplineSurface]:
         """
         Creates common knot vectors for a list of B-spline surfaces in the specified direction(s).
         Matches the C++ BSplineAlgorithms::createCommonKnotsVectorSurface function.
@@ -205,7 +205,7 @@ class GordonSurfaceBuilder:
 
         return result_surfaces
 
-    def _create_gordon_surface(self, profiles: List[Geom_BSplineCurve], guides: List[Geom_BSplineCurve], intersection_params_spline_u: List[float], intersection_params_spline_v: List[float]):
+    def _create_gordon_surface(self, profiles: list[Geom_BSplineCurve], guides: list[Geom_BSplineCurve], intersection_params_spline_u: list[float], intersection_params_spline_v: list[float]):
         """
         Create the Gordon surface using the C++ algorithm.
         
@@ -330,7 +330,7 @@ class GordonSurfaceBuilder:
             abs(curve.LastParameter() - umax) > tol):
             raise error(f"Curve not in range [{umin}, {umax}].", ErrorCode.MATH_ERROR)
     
-    def _check_curve_network_compatibility(self, profiles: List[Geom_BSplineCurve], guides: List[Geom_BSplineCurve], intersection_params_spline_u, intersection_params_spline_v, tol):
+    def _check_curve_network_compatibility(self, profiles: list[Geom_BSplineCurve], guides: list[Geom_BSplineCurve], intersection_params_spline_u, intersection_params_spline_v, tol):
         """Check if the curve network is compatible."""
         # Find the 'average' scale of the B-splines
         splines_scale = 0.5 * (BSplineAlgorithms.scale(profiles) + BSplineAlgorithms.scale(guides))

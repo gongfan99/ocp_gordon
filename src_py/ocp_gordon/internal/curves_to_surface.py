@@ -64,7 +64,7 @@ class CurvesToSurface:
     mirror the C++ version's functionality.
     """
     
-    def __init__(self, curves: List[Geom_Curve], parameters: Optional[List[float]] = None, continuous_if_closed: bool = False, tolerance: float = 1e-14):
+    def __init__(self, curves: list[Geom_Curve], parameters: list[float] | None = None, continuous_if_closed: bool = False, tolerance: float = 1e-14):
         """
         Initialize the surface skinner.
         
@@ -84,8 +84,8 @@ class CurvesToSurface:
         self._has_performed = False
         self._skinned_surface = None
         
-        self._input_curves: List[Geom_BSplineCurve] = []
-        self._compatible_splines: List[Geom_BSplineCurve] = [] # Initialize _compatible_splines here
+        self._input_curves: list[Geom_BSplineCurve] = []
+        self._compatible_splines: list[Geom_BSplineCurve] = [] # Initialize _compatible_splines here
         
         # Convert all curves to bspline curves and store them
         for curve in self._input_curves_raw:
@@ -113,7 +113,7 @@ class CurvesToSurface:
         self._max_degree = degree
         self.invalidate() # Invalidate cached surface
 
-    def get_parameters(self) -> List[float]:
+    def get_parameters(self) -> list[float]:
         """Returns the parameters at the profile curves (v-direction)."""
         return self._parameters
 

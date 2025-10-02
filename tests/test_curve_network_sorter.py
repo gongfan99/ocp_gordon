@@ -52,8 +52,8 @@ def create_linear_bspline_curve(
 
 
 @pytest.fixture
-def setup_sorter_data() -> Tuple[
-    List[Geom_BSplineCurve], List[Geom_BSplineCurve], np.ndarray, np.ndarray
+def setup_sorter_data() -> tuple[
+    list[Geom_BSplineCurve], list[Geom_BSplineCurve], np.ndarray, np.ndarray
 ]:
     # Create actual Geom_BSplineCurve instances
     profiles = [

@@ -232,7 +232,7 @@ def math_BFGS(
 ) -> bool:
     nb_variables = aFunc.NbVariables()
 
-    def f(args: List[float]):
+    def f(args: list[float]):
         ocp_args = math_Vector(1, nb_variables)
         for i in range(nb_variables):
             ocp_args.SetValue(ocp_args.Lower() + i, args[i])
@@ -243,7 +243,7 @@ def math_BFGS(
             raise RuntimeError(f"function cannot evaluate at {args}")
         return F_k.value
     
-    def g(args: List[float]):
+    def g(args: list[float]):
         ocp_args = math_Vector(1, nb_variables)
         for i in range(nb_variables):
             ocp_args.SetValue(ocp_args.Lower() + i, args[i])

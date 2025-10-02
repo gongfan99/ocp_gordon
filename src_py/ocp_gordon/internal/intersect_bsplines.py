@@ -206,7 +206,7 @@ class CurveCurveDistanceObjective(math_MultipleVarFunctionWithGradient):
 
         return True
 
-def getRangesOfIntersection(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tolerance: float) -> List[BoundingBoxPair]:
+def getRangesOfIntersection(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tolerance: float) -> list[BoundingBoxPair]:
     h1 = BoundingBox(curve1)
     h2 = BoundingBox(curve2)
     
@@ -278,11 +278,11 @@ class IntersectType(TypedDict):
     parmOnCurve2: float
     point: gp_Pnt
 
-def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tolerance: float = 1e-5) -> List[IntersectType]:
+def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tolerance: float = 1e-5) -> list[IntersectType]:
     hulls = getRangesOfIntersection(curve1, curve2, tolerance)
     
-    curve1_ints: List[BoundingBox] = []
-    curve2_ints: List[BoundingBox] = []
+    curve1_ints: list[BoundingBox] = []
+    curve2_ints: list[BoundingBox] = []
     for hull in hulls:
         curve1_ints.append(hull.b1)
         curve2_ints.append(hull.b2)
@@ -290,7 +290,7 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
     curve1_ints.sort(key=lambda b: b.range.min)
     curve2_ints.sort(key=lambda b: b.range.min)
 
-    unique_curve1_ints: List[BoundingBox] = []
+    unique_curve1_ints: list[BoundingBox] = []
     if curve1_ints:
         unique_curve1_ints.append(curve1_ints[0])
         for i in range(1, len(curve1_ints)):
@@ -298,7 +298,7 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
                 unique_curve1_ints.append(curve1_ints[i])
     curve1_ints = unique_curve1_ints
 
-    unique_curve2_ints: List[BoundingBox] = []
+    unique_curve2_ints: list[BoundingBox] = []
     if curve2_ints:
         unique_curve2_ints.append(curve2_ints[0])
         for i in range(1, len(curve2_ints)):
@@ -313,13 +313,13 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
     replace_adjacent_in_list(curve1_ints, is_adjacent, merge_boxes)
     replace_adjacent_in_list(curve2_ints, is_adjacent, merge_boxes)
     
-    intersectionCandidates: List[BoundingBoxPair] = []
+    intersectionCandidates: list[BoundingBoxPair] = []
     for b1 in curve1_ints:
         for b2 in curve2_ints:
             if b1.Intersects(b2, tolerance):
                 intersectionCandidates.append(BoundingBoxPair(b1, b2))
 
-    results: List[IntersectType] = []
+    results: list[IntersectType] = []
 
     for boxes in intersectionCandidates:
         c1 = BSplineAlgorithms.trimCurve(curve1, boxes.b1.range.min, boxes.b1.range.max)

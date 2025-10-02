@@ -12,6 +12,6 @@ class ApproxResult:
     """
     Structure to hold the result of a B-spline approximation/interpolation.
     """
-    def __init__(self, curve: Optional[Geom_BSplineCurve] = None, error: float = 0.0):
+    def __init__(self, curve: Geom_BSplineCurve | None = None, error: float = 0.0):
         self.curve = curve
         self.error = error

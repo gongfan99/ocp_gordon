@@ -28,7 +28,7 @@ class PointsToBSplineInterpolation:
     
     def __init__(self,
                  points: TColgp_HArray1OfPnt,
-                 parameters: Optional[List[float]] = None,
+                 parameters: list[float] | None = None,
                  max_degree: int = 3,
                  continuous_if_closed: bool = False):
         """
