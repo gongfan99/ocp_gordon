@@ -52,6 +52,9 @@ stubs = [
 [tool.setuptools.packages.find]
 where = ["src_py"]
 
+[tool.setuptools.package-data]
+ocp_gordon = ["py.typed"]
+
 [tool.setuptools_scm]
 version_scheme = "guess-next-dev"
 local_scheme = "no-local-version"

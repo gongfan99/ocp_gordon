@@ -74,7 +74,7 @@ def create_test_curves1():
     
     return profiles, guides
 
-# aircraft engine shell
+# aircraft engine cowling
 def create_test_curves2():
     """
     Create test curves that form a proper intersecting network for Gordon surface interpolation.
@@ -103,6 +103,72 @@ def create_test_curves2():
     
     return profiles, guides
 
+# airliner fuselage
+def create_test_curves3():
+    profiles: list[Edge] = []
+    guides: list[Edge] = []
+
+    # Define points for the aircraft side profile in the YZ plane (X=0)
+    # These points approximate the shape of an aircraft fuselage from nose to tail.
+    # Y-coordinates are positive, Z-coordinates define the vertical profile.
+    top_guide_points = [
+        (0, 0, 1.47),
+        (0, 1, 2.21),
+        (0, 2.2, 2.94),
+        (0, 3, 3.68),
+        (0, 4, 4.56),
+        (0, 5, 5.15),
+        (0, 7, 5.70),
+        (0, 10, 6.18),
+        (0, 15, 6.25),
+        (0, 30, 6.25),
+        (0, 50, 6.21),
+        (0, 60, 6.10),
+        (0, 74.5, 4.96),
+    ]
+
+    bottom_guide_points = [
+        (0, 0, -0.37),
+        (0, 1, -0.92),
+        (0, 2.2, -1.29),
+        (0, 3, -1.54),
+        (0, 4, -1.77),
+        (0, 5, -1.91),
+        (0, 7, -2.02),
+        (0, 10, -2.10),
+        (0, 15, -2.13),
+        (0, 30, -2.10),
+        (0, 50, -2.10),
+        (0, 60, -0.55),
+        (0, 74.5, 3.49),
+    ]
+
+    guide1 = Spline(top_guide_points) # top guide
+    guide2 = Spline(bottom_guide_points) # bottom guide
+
+    # create a circle passing p1 and p2 as diameter
+    def circle_by_2_point(p1: Vector, p2: Vector):
+        center = (p1 + p2) / 2
+        loc1 = Location(center, (90 + Vector(0, 0, 1).get_signed_angle(p2 - p1), 0, 0))
+        c1 = CenterArc(center=(0,0,0), radius=abs(p1-p2)/2, start_angle=0, arc_size=360)
+        return c1.locate(loc1)
+
+    profile_section_points = [0, 2.2, 5, 10, 30, 50, top_guide_points[-1][1]]
+
+    for section_point in profile_section_points:
+        point1 = guide1.intersect(Plane((0, section_point, 0), z_dir=(0, -1, 0)))
+        point2 = guide2.intersect(Plane((0, section_point, 0), z_dir=(0, -1, 0)))
+        if point1 is not None and point2 is not None:
+            vertex1 = point1.vertex()
+            vertex2 = point2.vertex()
+            if vertex1 is not None and vertex2 is not None:
+                profiles.append(circle_by_2_point(vertex1.center(), vertex2.center()))
+
+    guide3 = Spline([p@0 for p in profiles])
+    guide4 = guide3.mirror(Plane.YZ)
+    guides = [guide1, guide2, guide3, guide4]
+    
+    return profiles, guides
 
 if __name__ == "__main__":
     """Main demonstration function."""
@@ -111,8 +177,9 @@ if __name__ == "__main__":
     
     # Create test curves
     print("Creating test curves...")
-    profiles, guides = create_test_curves1()
+    # profiles, guides = create_test_curves1()
     # profiles, guides = create_test_curves2()
+    profiles, guides = create_test_curves3()
     show(*profiles, *guides, reset_camera=Camera.KEEP)
     
     print(f"Created {len(profiles)} profile curves and {len(guides)} guide curves")
