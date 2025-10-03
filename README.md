@@ -35,7 +35,7 @@ Here's a basic example of how to use the library:
 
 from ocp_gordon import interpolate_curve_network
 
-gordon_surface = interpolate_curve_network(profile_curves, guide_curves, tolerance=0.0003)
+gordon_surface = interpolate_curve_network(profile_curves, guide_curves, tolerance=3e-4)
 
 ```
 
@@ -46,20 +46,19 @@ For more detailed examples, please refer to the `examples/` directory in the sou
 To run tests, first install pytest, then:
 
 ```bash
-cd tests
-python test_all.py
+python -m pytest
 
 ```
 
 ## Notable Difference from C++ Code
 
-- In `intersect_bsplines.py`, a polyfilled `math_BFGS` is used instead of `math_FRPR`. Both `math_BFGS` and `math_FRPR` are not usable in OCP because OCP does not expose `math_Vector`. The `activate()` function in this file has also been changed since the original one does not work well. In `IntersectBSplines` function, first check if the intersection occurs at the end points before using 2d minimizer.
-- In the `_solve()` function in `bspline_approx_interp.py`, the regularization is added to prevent singular matrix which occurs in some cases for example when the input curve is a bspline converted from a circle.
-- A new file `misc.py` is added to implement some missing classes/functions from OCP. The major ones are `clone_bspline` and `math_BFGS`.
+- In `intersect_bsplines.py`, the `math_BFGS` method is polyfilled and used in place of `math_FRPR`, as neither `math_BFGS` nor `math_FRPR` is usable in OCP due to the lack of `math_Vector` exposure. The `activate()` function in this file has also been modified because the original implementation did not perform well. Additionally, the `IntersectBSplines()` function now checks for intersections at the endpoints before invoking the 2D minimizer.
+- In the `_solve()` function of `bspline_approx_interp.py`, regularization has been added to prevent singular matrix issues, which can occur in cases such as when the input curve is a B-spline derived from a circle.
+- A new file, `misc.py`, has been introduced to implement missing OCP utilities. The primary additions include `clone_bspline` and `math_BFGS`.
 
 ## Caveats
 
-- In the `IntersectBSplines` function, the 2d minimizer does not work well when the number of profile/guides is high (>5). Increase the `tolerance` parameter in `interpolate_curve_network` can help.
+- In the `IntersectBSplines` function, the 2D minimizer performs poorly when the number of profiles or guides exceeds five. Increasing the `tolerance` parameter in `interpolate_curve_network()` can help mitigate this issue.
 
 ## License
 
