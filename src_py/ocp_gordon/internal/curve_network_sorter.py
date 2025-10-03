@@ -69,8 +69,8 @@ class CurveNetworkSorter:
     """
     
     def __init__(self,
-                 profiles: List[Geom_Curve],
-                 guides: List[Geom_Curve],
+                 profiles: list[Geom_Curve],
+                 guides: list[Geom_Curve],
                  parms_inters_profiles: np.ndarray,
                  parms_inters_guides: np.ndarray):
         
@@ -168,7 +168,7 @@ class CurveNetworkSorter:
         self._parms_inters_guides[:, [idx1, idx2]] = self._parms_inters_guides[:, [idx2, idx1]]
         self._parms_inters_profiles[:, [idx1, idx2]] = self._parms_inters_profiles[:, [idx2, idx1]]
 
-    def get_start_curve_indices(self) -> Tuple[int, int, bool]:
+    def get_start_curve_indices(self) -> tuple[int, int, bool]:
         # find curves, that begin at the same point (have the smallest parameter at their intersection)
         for irow in range(self.NProfiles()):
             jmin = min_row_index(self._parms_inters_profiles, irow)
@@ -198,10 +198,10 @@ class CurveNetworkSorter:
     def NGuides(self) -> int:
         return len(self._guides)
 
-    def ProfileIndices(self) -> List[str]:
+    def ProfileIndices(self) -> list[str]:
         return self._prof_idx
 
-    def GuideIndices(self) -> List[str]:
+    def GuideIndices(self) -> list[str]:
         return self._guid_idx
 
     def reverse_profile(self, profile_idx: int):

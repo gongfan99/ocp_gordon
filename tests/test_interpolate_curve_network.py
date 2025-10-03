@@ -55,7 +55,7 @@ def create_bspline_curve(points: list[gp_Pnt]):
     return approximator.Curve()
 
 # Helper function to create a simple B-spline curve
-def create_bspline_curve_from_poles(points: List[gp_Pnt], degree: int = 3) -> Geom_BSplineCurve:
+def create_bspline_curve_from_poles(points: list[gp_Pnt], degree: int = 3) -> Geom_BSplineCurve:
     num_poles = len(points)
     
     # Control points

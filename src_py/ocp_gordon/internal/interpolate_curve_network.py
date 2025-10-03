@@ -39,8 +39,8 @@ class SurfaceConstructionError(GordonInterpolationError):
 
 
 def interpolate_curve_network(
-    ucurves: List[Union[Geom_Curve, Geom_BSplineCurve]],
-    vcurves: List[Union[Geom_Curve, Geom_BSplineCurve]],
+    ucurves: list[Geom_Curve | Geom_BSplineCurve],
+    vcurves: list[Geom_Curve | Geom_BSplineCurve],
     tolerance: float = 3e-4
 ) -> Geom_BSplineSurface:
     """
@@ -88,8 +88,8 @@ class InterpolateCurveNetwork:
     
     def __init__(
         self,
-        profiles: List[Geom_BSplineCurve],
-        guides: List[Geom_BSplineCurve],
+        profiles: list[Geom_BSplineCurve],
+        guides: list[Geom_BSplineCurve],
         spatial_tolerance: float
     ):
         """
@@ -107,7 +107,7 @@ class InterpolateCurveNetwork:
             raise InvalidInputError("There must be at least two guides for the curve network interpolation.")
 
         # Remove duplicates from profiles and guides (integrated logic)
-        unique_profiles: List[Geom_BSplineCurve] = []
+        unique_profiles: list[Geom_BSplineCurve] = []
         for profile in profiles:
             is_unique = True
             for unique_profile in unique_profiles:
@@ -117,7 +117,7 @@ class InterpolateCurveNetwork:
             if is_unique:
                 unique_profiles.append(profile)
 
-        unique_guides: List[Geom_BSplineCurve] = []
+        unique_guides: list[Geom_BSplineCurve] = []
         for guide in guides:
             is_unique = True
             for unique_guide in unique_guides:
@@ -139,12 +139,12 @@ class InterpolateCurveNetwork:
         self.has_performed = False
         
         # Results storage
-        self.skinning_surf_profiles: Optional[Geom_BSplineSurface] = None
-        self.skinning_surf_guides: Optional[Geom_BSplineSurface] = None
-        self.tensor_prod_surf: Optional[Geom_BSplineSurface] = None
-        self.gordon_surf: Optional[Geom_BSplineSurface] = None
-        self.intersection_params_u: List[float] = [] # Stores final reparametrized parameters
-        self.intersection_params_v: List[float] = [] # Stores final reparametrized parameters
+        self.skinning_surf_profiles: Geom_BSplineSurface | None = None
+        self.skinning_surf_guides: Geom_BSplineSurface | None = None
+        self.tensor_prod_surf: Geom_BSplineSurface | None = None
+        self.gordon_surf: Geom_BSplineSurface | None = None
+        self.intersection_params_u: list[float] = [] # Stores final reparametrized parameters
+        self.intersection_params_v: list[float] = [] # Stores final reparametrized parameters
 
     def perform(self):
         """Perform the complete Gordon surface interpolation."""
@@ -204,12 +204,12 @@ class InterpolateCurveNetwork:
         assert self.tensor_prod_surf is not None
         return self.tensor_prod_surf
 
-    def parameters_profiles(self) -> List[float]:
+    def parameters_profiles(self) -> list[float]:
         """Returns the parameters at the profile curves (v-direction)."""
         self.perform()
         return self.intersection_params_u # intersection_params_v in C++, likely error
 
-    def parameters_guides(self) -> List[float]:
+    def parameters_guides(self) -> list[float]:
         """Returns the parameters at the guide curves (u-direction)."""
         self.perform()
         return self.intersection_params_v # intersection_params_u in C++, likely error
@@ -508,8 +508,8 @@ class InterpolateCurveNetwork:
 
 
 def interpolate_curve_network_debug(
-    ucurves: List[Union[Geom_Curve, Geom_BSplineCurve]],
-    vcurves: List[Union[Geom_Curve, Geom_BSplineCurve]],
+    ucurves: list[Geom_Curve | Geom_BSplineCurve],
+    vcurves: list[Geom_Curve | Geom_BSplineCurve],
     tolerance: float = 3e-4
 ) -> InterpolateCurveNetwork:
     """

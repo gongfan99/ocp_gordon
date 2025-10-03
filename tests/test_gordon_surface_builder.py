@@ -17,7 +17,7 @@ from src_py.ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms, Sur
 from src_py.ocp_gordon.internal.error import error, ErrorCode
 
 # Helper function to create a simple B-spline curve
-def create_simple_bspline_curve(points: List[gp_Pnt], degree: int = 3) -> Geom_BSplineCurve:
+def create_simple_bspline_curve(points: list[gp_Pnt], degree: int = 3) -> Geom_BSplineCurve:
     num_poles = len(points)
     
     # Control points

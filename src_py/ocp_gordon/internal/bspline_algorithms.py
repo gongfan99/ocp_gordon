@@ -47,7 +47,7 @@ class BSplineAlgorithms:
         return abs(value - target) < tolerance
 
     @staticmethod
-    def linspace_with_breaks(umin: float, umax: float, n_values: int, breaks: List[float]) -> List[float]:
+    def linspace_with_breaks(umin: float, umax: float, n_values: int, breaks: list[float]) -> list[float]:
         """
         Generates a sequence of evenly spaced values over a specified interval,
         including specified break points. This is a Python port of the C++
@@ -139,7 +139,7 @@ class BSplineAlgorithms:
         return v_dir_closed
 
     @staticmethod
-    def get_kink_parameters(curve: Geom_BSplineCurve) -> List[float]:
+    def get_kink_parameters(curve: Geom_BSplineCurve) -> list[float]:
         if curve is None:
             raise error("Null Pointer curve", ErrorCode.NULL_POINTER) # Use ErrorCode
 
@@ -167,8 +167,8 @@ class BSplineAlgorithms:
 
     class SurfaceKinks: # Define SurfaceKinks as a nested class
         def __init__(self):
-            self.u: List[float] = []
-            self.v: List[float] = []
+            self.u: list[float] = []
+            self.v: list[float] = []
 
     @staticmethod
     def get_kink_parameters_surface(surface: Geom_BSplineSurface) -> 'BSplineAlgorithms.SurfaceKinks':
@@ -196,7 +196,7 @@ class BSplineAlgorithms:
     
     @staticmethod
     def compute_params_bspline_curve(points: TColgp_HArray1OfPnt, 
-                                   alpha: float = 0.5) -> List[float]:
+                                   alpha: float = 0.5) -> list[float]:
         """
         Computes parameters of a B-spline curve at given points.
         
@@ -238,7 +238,7 @@ class BSplineAlgorithms:
         return params
     
     @staticmethod
-    def match_parameter_range(bsplines: List[Geom_BSplineCurve], 
+    def match_parameter_range(bsplines: list[Geom_BSplineCurve], 
                             tolerance: float = 1e-15) -> None:
         """
         Matches parameter range of all B-splines to the first B-spline.
@@ -262,7 +262,7 @@ class BSplineAlgorithms:
                 BSplineAlgorithms.reparametrize_bspline(spline, umin_ref, umax_ref, tolerance)
     
     @staticmethod
-    def match_degree(bsplines: List[Geom_BSplineCurve]) -> None:
+    def match_degree(bsplines: list[Geom_BSplineCurve]) -> None:
         """
         Matches degree of all B-splines by raising to maximum degree.
         
@@ -282,8 +282,8 @@ class BSplineAlgorithms:
                 spline.IncreaseDegree(max_degree)
     
     @staticmethod
-    def create_common_knots_vector_curve(splines_vector: List[Geom_BSplineCurve],
-                                       tol: float) -> List[Geom_BSplineCurve]:
+    def create_common_knots_vector_curve(splines_vector: list[Geom_BSplineCurve],
+                                       tol: float) -> list[Geom_BSplineCurve]:
         """
         Creates common knots vector for given B-splines.
         
@@ -365,7 +365,7 @@ class BSplineAlgorithms:
         spline.SetKnots(knots_array)
     
     @staticmethod
-    def to_bsplines(curves: List[Geom_Curve]) -> List[Geom_BSplineCurve]:
+    def to_bsplines(curves: list[Geom_Curve]) -> list[Geom_BSplineCurve]:
         """
         Converts a curve array into a B-spline array.
         
@@ -389,7 +389,7 @@ class BSplineAlgorithms:
     @staticmethod
     def intersections(spline1: Geom_BSplineCurve, 
                      spline2: Geom_BSplineCurve, 
-                     tolerance: float = 3e-4) -> List[Tuple[float, float]]:
+                     tolerance: float = 3e-4) -> list[tuple[float, float]]:
         """
         Returns all intersections of two B-splines.
         
@@ -429,7 +429,7 @@ class BSplineAlgorithms:
         return scale_val if scale_val > 0 else 1.0
 
     @staticmethod
-    def _scale_curve_list(splines_vector: List[Geom_BSplineCurve]) -> float:
+    def _scale_curve_list(splines_vector: list[Geom_BSplineCurve]) -> float:
         """
         Returns the approximate scale of the biggest B-spline curve in a list.
         Matches the C++ scale(const std::vector<Handle(Geom_BSplineCurve)>& splines_vector) function.
@@ -467,7 +467,7 @@ class BSplineAlgorithms:
         return the_scale if the_scale > 0 else 1.0 # Ensure non-zero scale
 
     @staticmethod
-    def scale(obj: Union[Geom_BSplineCurve, List[Geom_BSplineCurve], TColgp_Array2OfPnt, TColgp_Array1OfPnt]) -> float:
+    def scale(obj: Geom_BSplineCurve | list[Geom_BSplineCurve] | TColgp_Array2OfPnt | TColgp_Array1OfPnt) -> float:
         """
         Returns the approximate scale of the given B-spline curve(s) or point array(s).
         This is a unified method to match the overloaded C++ scale functions.
@@ -485,7 +485,7 @@ class BSplineAlgorithms:
 
     # Helper methods
     @staticmethod
-    def _get_knots(spline: Geom_BSplineCurve) -> List[float]:
+    def _get_knots(spline: Geom_BSplineCurve) -> list[float]:
         """Get all knots from a B-spline curve."""
         knots = []
         n_knots = spline.NbKnots()
@@ -503,7 +503,7 @@ class BSplineAlgorithms:
         return 0
     
     @staticmethod
-    def _get_poles(spline: Geom_BSplineCurve) -> List[gp_Pnt]:
+    def _get_poles(spline: Geom_BSplineCurve) -> list[gp_Pnt]:
         """Get all poles from a B-spline curve."""
         poles = []
         n_poles = spline.NbPoles()
@@ -512,7 +512,7 @@ class BSplineAlgorithms:
         return poles
     
     @staticmethod
-    def _get_weights(spline: Geom_BSplineCurve) -> List[float]:
+    def _get_weights(spline: Geom_BSplineCurve) -> list[float]:
         """Get all weights from a rational B-spline curve."""
         if not spline.IsRational():
             return [1.0] * spline.NbPoles()
@@ -524,8 +524,8 @@ class BSplineAlgorithms:
         return weights
     
     @staticmethod
-    def _insert_knots(spline: Geom_BSplineCurve, knots: List[float], 
-                     multiplicities: List[int], tol: float) -> Geom_BSplineCurve:
+    def _insert_knots(spline: Geom_BSplineCurve, knots: list[float], 
+                     multiplicities: list[int], tol: float) -> Geom_BSplineCurve:
         """
         Insert knots into a B-spline curve.
         
@@ -563,8 +563,8 @@ class BSplineAlgorithms:
     
     @staticmethod
     def reparametrize_bspline_continuously_approx(spline: Geom_BSplineCurve,
-                                                  old_parameters: List[float],
-                                                  new_parameters: List[float],
+                                                  old_parameters: list[float],
+                                                  new_parameters: list[float],
                                                   n_control_pnts: int) -> ApproxResult: # Note: C++ returns ApproxResult
         """
         Reparametrize B-spline curve using approximation, matching C++ line by line.
@@ -734,7 +734,7 @@ class BSplineAlgorithms:
         return GeomConvert.CurveToBSplineCurve_s(curve)
 
     @staticmethod
-    def knots_from_curve_parameters(params: List[float], degree: int, closed_curve: bool = False) -> List[float]:
+    def knots_from_curve_parameters(params: list[float], degree: int, closed_curve: bool = False) -> list[float]:
         """
         Create knot vector from curve parameters following Park (2000) algorithm.
         
@@ -883,7 +883,7 @@ class BSplineAlgorithms:
         return low
 
     @staticmethod
-    def _basis_functions(knots: TColStd_Array1OfReal, span_idx: int, param: float, degree: int) -> List[float]:
+    def _basis_functions(knots: TColStd_Array1OfReal, span_idx: int, param: float, degree: int) -> list[float]:
         """Compute B-spline basis functions for a given span."""
         left = [0.0] * (degree + 1)
         right = [0.0] * (degree + 1)
@@ -941,7 +941,7 @@ class BSplineAlgorithms:
                 and c2_continuous)
 
     @staticmethod
-    def to_array(vector: List[float]) -> TColStd_HArray1OfReal:
+    def to_array(vector: list[float]) -> TColStd_HArray1OfReal:
         """
         Convert Python list to TColStd_HArray1OfReal.
         
@@ -957,7 +957,7 @@ class BSplineAlgorithms:
         return array
 
     @staticmethod
-    def to_array_int(vector: List[int]) -> TColStd_HArray1OfInteger:
+    def to_array_int(vector: list[int]) -> TColStd_HArray1OfInteger:
         """
         Convert Python list to TColStd_HArray1OfInteger.
         
@@ -1001,7 +1001,7 @@ class BSplineAlgorithms:
         return row_vector
 
     @staticmethod
-    def compute_params_bspline_surf(points: TColgp_Array2OfPnt, alpha: float = 0.5) -> Tuple[List[float], List[float]]:
+    def compute_params_bspline_surf(points: TColgp_Array2OfPnt, alpha: float = 0.5) -> tuple[list[float], list[float]]:
         """
         Computes parameters for a B-spline surface in both u and v directions.
         Matches the C++ computeParamsBSplineSurf function line by line.
@@ -1066,7 +1066,7 @@ class BSplineAlgorithms:
         return result
 
     @staticmethod
-    def _insert_knot_with_multiplicity(knot: float, count: int, degree: int, knots: List[float], mults: List[int], tol: float = 1e-5):
+    def _insert_knot_with_multiplicity(knot: float, count: int, degree: int, knots: list[float], mults: list[int], tol: float = 1e-5):
         """
         Inserts a knot into the knot vector with a specified multiplicity,
         similar to the C++ insertKnot helper function.
@@ -1173,7 +1173,7 @@ class BSplineAlgorithms:
 
 
     @staticmethod
-    def have_same_range(splines_vector: List[Union['BSplineAlgorithms.SurfAdapterView', 'BSplineAlgorithms.CurveAdapterView']], par_tolerance: float) -> bool:
+    def have_same_range(splines_vector: list[Union['BSplineAlgorithms.SurfAdapterView', 'BSplineAlgorithms.CurveAdapterView']], par_tolerance: float) -> bool:
         """
         Checks if all splines in the vector have the same parameter range.
         This is a generic helper for both curves and surfaces (via adapters).
