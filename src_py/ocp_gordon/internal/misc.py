@@ -1,7 +1,10 @@
+import json
+from pathlib import Path
 from typing import List
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
 from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger, TColStd_Array2OfReal
 from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt
+from OCP.gp import gp_Pnt
 import numpy as np
 from scipy.optimize import minimize
 
@@ -241,27 +244,143 @@ def math_BFGS(
         G_k_vec = math_Vector(1, nb_variables)
         if not aFunc.Values(ocp_args, F_k, G_k_vec):
             raise RuntimeError(f"function cannot evaluate at {args}")
-        return F_k.value
-    
-    def g(args: list[float]):
-        ocp_args = math_Vector(1, nb_variables)
-        for i in range(nb_variables):
-            ocp_args.SetValue(ocp_args.Lower() + i, args[i])
+        return F_k.value, np.array([G_k_vec(i) for i in range(1, nb_variables+1)])
 
-        F_k = Standard_Real(0.0)
-        G_k_vec = math_Vector(1, nb_variables)
-        if not aFunc.Values(ocp_args, F_k, G_k_vec):
-            raise RuntimeError(f"gradient cannot evaluate at {args}")
-        return np.array([G_k_vec(i) for i in range(1, nb_variables+1)])
+    x0 = np.array([aX(i) for i in range(1, nb_variables+1)])
 
-    x0 = [aX(i) for i in range(1, nb_variables+1)]
-    res = minimize(f, x0=x0, jac=g, method='BFGS', tol=aTolerance)
+    def estimate_initial_inv_hessian(x0, rel_eps=1e-8, reg=1e-8):
+        """
+        Estimate 2x2 inverse Hessian by finite-differencing the gradient and inverting.
+        - x0: 1D array-like, length=2 (current point)
+        - grad_func: function(x) -> gradient array-like shape (2,)
+        - rel_eps: relative step size for finite differences (default sqrt(machine eps))
+        - reg: regularization added to Hessian diagonal before inversion
+        Returns: 2x2 numpy array H0 (approx inverse Hessian)
+        """
+        n = x0.size
+        assert n == 2, "This routine expects 2 parameters; adapt if you have more."
 
-    if not res.success:
-        return False
+        # _, g0 = f(x0)
+        H = np.zeros((n, n), dtype=float)
+
+        # central differences for Jacobian of gradient (Hessian)
+        for j in range(n):
+            # step size scaled to parameter magnitude
+            eps = rel_eps * max(1.0, abs(x0[j]))
+            ej = np.zeros_like(x0); ej[j] = eps
+            _, g_plus = f(x0 + ej)
+            _, g_minus = f(x0 - ej)
+            H[:, j] = (g_plus - g_minus) / (2.0 * eps)
+
+        # symmetrize Hessian (numerical safety)
+        H = 0.5 * (H + H.T)
+
+        # regularize: add small multiple of identity to avoid singularity / negative eigenvalues
+        # choose reg scale relative to typical diagonal magnitude
+        diag_scale = max(np.abs(np.diag(H)).max(), 1.0)
+        H_reg = H + np.eye(n) * (reg * diag_scale)
+
+        # Try to invert; if fails, fall back to scaled identity
+        try:
+            invH = np.linalg.inv(H_reg)
+        except np.linalg.LinAlgError:
+            # fallback: scaled identity using curvature estimate
+            # estimate curvature scale as average diag of |H|
+            avg_curv = max(1e-8, np.mean(np.abs(np.diag(H))))
+            invH = np.eye(n) * (1.0 / avg_curv)
+
+        # --- Enforce SPD by eigenvalue projection ---
+        # Symmetrize
+        invH = 0.5 * (invH + invH.T)
+
+        try:
+            # Eigen-decompose
+            eigvals, eigvecs = np.linalg.eigh(invH)
+
+            # Clamp eigenvalues to a small positive floor
+            eigvals_clamped = np.clip(eigvals, rel_eps, None)
+
+            # Reconstruct
+            invH_spd = eigvecs @ np.diag(eigvals_clamped) @ eigvecs.T
+
+            invH_spd = 0.5 * (invH_spd + invH_spd.T)
+            np.linalg.cholesky(invH_spd)
+        except np.linalg.LinAlgError:
+            print("Hessian projection failed — fallback to identity.")
+            avg_curv = max(1e-8, np.mean(np.abs(np.diag(H))))
+            invH = np.eye(n) * (1.0 / avg_curv)
+            return invH
+        
+        return invH_spd
+
+    H0 = estimate_initial_inv_hessian(x0)
+
+    # options = {'gtol': 1e-12, 'ftol': 1e-12, 'maxiter': 100}
+    # res = minimize(f, x0=x0, jac=True, method='BFGS', tol=aTolerance, options=options)
+    res = minimize(f, x0=x0, jac=True, method='BFGS', tol=aTolerance, options={"hess_inv0": H0})
     
     for i in range(nb_variables):
         aX.SetValue(aX.Lower() + i, res.x[i])
-    return True
 
+    return res.success
+
+
+# save_bsplines_to_file() and load_bsplines_from_file() are convenient for debugging
+def save_bsplines_to_file(splines: list[Geom_BSplineCurve], file_path: str):
+
+    obj = []
+
+    for spline in splines:
+        poles: list[tuple[float, float, float]] = []
+        for i in range(1, spline.NbPoles() + 1):
+            p = spline.Pole(i)
+            poles.append((p.X(), p.Y(), p.Z()))
+        
+        weights = [spline.Weight(i) for i in range(1, spline.NbPoles() + 1)]
+        knots = [spline.Knot(i) for i in range(1, spline.NbKnots() + 1)]
+        mults = [spline.Multiplicity(i) for i in range(1, spline.NbKnots() + 1)]
+
+        obj.append({"poles": poles, "weights": weights, "knots": knots, "mults": mults, "degree": spline.Degree(), "is_periodic": spline.IsPeriodic()})
+
+    with open(Path.home() / file_path, "w") as f:
+        json.dump(obj, f, indent=2)
+
+
+def load_bsplines_from_file(file_path: str):
+
+    with open(Path.home() / file_path, "r") as f:
+        objs = json.load(f)
+
+    bsplines: list[Geom_BSplineCurve] = []
+    for obj in objs:
+        # Get poles
+        NbPoles = len(obj["poles"])
+        poles = TColgp_Array1OfPnt(1, NbPoles)
+        for i in range(NbPoles):
+            poles.SetValue(i+1, gp_Pnt(*obj["poles"][i]))
+        
+        # Get weights
+        weights = TColStd_Array1OfReal(1, NbPoles)
+        for i in range(NbPoles):
+            weights.SetValue(i+1, obj["weights"][i])
+        
+        # Get knots
+        NbKnots = len(obj["knots"])
+        knot_array = TColStd_Array1OfReal(1, NbKnots)
+        for i in range(NbKnots):
+            knot_array.SetValue(i+1, obj["knots"][i])
+        
+        # Get multiplicities
+        mult_array = TColStd_Array1OfInteger(1, NbKnots)
+        for i in range(NbKnots):
+            mult_array.SetValue(i+1, obj["mults"][i])
+        
+        # Create new spline
+        new_spline = Geom_BSplineCurve(
+            poles, weights, knot_array, mult_array,
+            obj["degree"], obj["is_periodic"]
+        )
+        bsplines.append(new_spline)
+
+    return bsplines
 

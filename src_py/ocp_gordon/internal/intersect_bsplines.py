@@ -273,6 +273,105 @@ def merge_boxes(b1: BoundingBox, b2: BoundingBox) -> BoundingBox:
     new_box.Merge(b2)
     return new_box
 
+# add two functions is_point_on_line_segment and line_line_intersection_3d
+# to triage the intersection to avoid expensive minimizer
+# and find good intial solution
+# They are not in C++ code
+def is_point_on_line_segment(
+    point: gp_Pnt,
+    segment_start: gp_Pnt,
+    segment_end: gp_Pnt,
+    max_curvature: float = 1.0005,
+) -> tuple[float, bool]:
+    """
+    Checks if a 3D point lies on a 3D line segment which
+    is the chord of a B-spline with the max_curvature.
+    t is the parameter for the line segment in the range of [0, 1].
+    """
+    vec_segment = gp_Vec(segment_start, segment_end)
+    vec_point_from_start = gp_Vec(segment_start, point)
+
+    # t = (AP . AB) / |AB|^2
+    line_length = vec_segment.Magnitude()
+    t = vec_point_from_start.Dot(vec_segment) / (line_length * line_length)
+
+    possible_intersect = True
+
+    # use a circular arc to estimate the max possible distance
+    rel_sagitta = 0.6123724 * math.sqrt(max_curvature - 1)
+    max_distance = 3 * rel_sagitta * line_length # 3 for margin
+
+    # check the range of t
+    if t * line_length < -max_distance or t * line_length > line_length + max_distance:
+        possible_intersect = False
+
+    # Check the distance between the closest points
+    closest_point_on_line = gp_Pnt(segment_start.XYZ())
+    closest_point_on_line.BaryCenter(1 - t, segment_end, t)
+
+    distance_to_line = point.Distance(closest_point_on_line)
+    if distance_to_line > max_distance:
+        possible_intersect = False
+
+    return t, possible_intersect
+
+def line_line_intersection_3d(
+    p1_start: gp_Pnt, p1_end: gp_Pnt,
+    p2_start: gp_Pnt, p2_end: gp_Pnt,
+    max_curvature: float = 1.0005,
+) -> tuple[float, float, bool]:
+    """
+    Finds the parameters (t, s) for the closest points on two 3D line segments which
+    are the chords of possibly intersected two B-splines with the max_curvature.
+    t is the parameter for line 1, s for line 2. Both are in the range of [0, 1].
+    """
+    u = gp_Vec(p1_start, p1_end)
+    v = gp_Vec(p2_start, p2_end)
+    w = gp_Vec(p1_start, p2_start)
+
+    a = u.Dot(u)  # |u|^2
+    b = u.Dot(v)
+    c = v.Dot(v)  # |v|^2
+    d = u.Dot(w)
+    e = v.Dot(w)
+
+    denom = a * c - b * b
+
+    if abs(denom) < 1e-12:  # Lines are parallel or collinear
+        t = 0.5
+        s = 0.5
+    else:
+        t = (c * d - b * e) / denom
+        s = (b * d - a * e) / denom
+
+    possible_intersect = True
+
+    # use a circular arc to estimate the max possible distance between two lines
+    p1_mag = math.sqrt(a)
+    p2_mag = math.sqrt(c)
+    rel_sagitta = 0.6123724 * math.sqrt(max_curvature - 1)
+    max_distance = 3 * rel_sagitta * (p1_mag + p2_mag) # 3 for margin
+
+    # check the range of t, s
+    if t * p1_mag < -max_distance or t * p1_mag > p1_mag + max_distance:
+        possible_intersect = False
+
+    if s * p2_mag < -max_distance or s * p2_mag > p2_mag + max_distance:
+        possible_intersect = False
+
+    # Check the distance between the closest points
+    closest_p1 = gp_Pnt(p1_start.XYZ())
+    closest_p1.BaryCenter(1-t, p1_end, t)
+    closest_p2 = gp_Pnt(p2_start.XYZ())
+    closest_p2.BaryCenter(1-s, p2_end, s)
+    
+    distance = closest_p1.Distance(closest_p2)
+    if distance > max_distance:
+        possible_intersect = False
+    
+    return t, s, possible_intersect
+
+
 class IntersectType(TypedDict):
     parmOnCurve1: float
     parmOnCurve2: float
@@ -340,12 +439,18 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
         # check if cx1.Value(param1) is on cx2
         def check_point_on_curve2(cx1: Geom_BSplineCurve, param1: float, cx2: Geom_BSplineCurve):
             v = cx2.FirstParameter()
-            if cx1.Value(param1).Distance(cx2.Value(v)) < _tolerance_distance:
+            cx2_first_point = cx2.Value(v)
+            if cx1.Value(param1).Distance(cx2_first_point) < _tolerance_distance:
                 return param1, v
             
             v = cx2.LastParameter()
-            if cx1.Value(param1).Distance(cx2.Value(v)) < _tolerance_distance:
+            cx2_last_point = cx2.Value(v)
+            if cx1.Value(param1).Distance(cx2_last_point) < _tolerance_distance:
                 return param1, v
+
+            t, possible_intersect = is_point_on_line_segment(cx1.Value(param1), cx2_first_point, cx2_last_point)
+            if not possible_intersect:
+                return None, None
         
             res = minimize_scalar(
                 lambda v: cx1.Value(param1).SquareDistance(cx2.Value(v)),
@@ -400,20 +505,35 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
 
         # C++ code starts from here. Hence, it only uses 2d minimizer without first checking intersection at endpoints
         obj = CurveCurveDistanceObjective(c1, c2)
+        
+        # Try to find a good initial guess using straight-line analytic solution
+        p1_start = c1.Value(c1.FirstParameter())
+        p1_end = c1.Value(c1.LastParameter())
+        p2_start = c2.Value(c2.FirstParameter())
+        p2_end = c2.Value(c2.LastParameter())
+
+        t_closest, s_closest, possible_intersect = line_line_intersection_3d(
+            p1_start, p1_end, p2_start, p2_end
+        )
+
+        if not possible_intersect:
+            continue
 
         # Use custom math_Vector class for optimizer inputs
         guess = math_Vector(1, 2)
-        guess.SetValue(1, 0.5)
-        guess.SetValue(2, 0.5)
+        guess.SetValue(1, t_closest)
+        guess.SetValue(2, s_closest)
 
         # C++ uses 1e-10 as the aTolenrance for math_FRPR which seems to be an error
-        converged = math_BFGS(obj, guess, _tolerance_distance * _tolerance_distance)
-
-        if not converged:
-            # print("Warning: `IntersectBSplines` not converge")
-            # print(f'boxes.b1.range=[{boxes.b1.range.min}, {boxes.b1.range.max}], b2.range=[{boxes.b2.range.min}, {boxes.b2.range.max}]')
+        converged = False
+        for i in range(3):
+            converged = math_BFGS(obj, guess, _tolerance_distance * _tolerance_distance)
+            if converged:
+                break
+            # print(f"Warning: `IntersectBSplines` not converge {i+1} time")
+            # print(f'boxes.b1.range=[{boxes.b1.range.min}, {boxes.b1.range.max}]')
+            # print(f'boxes.b2.range=[{boxes.b2.range.min}, {boxes.b2.range.max}]')
             # print(f'tolerance={tolerance}')
-            continue
 
         u = obj.getUParam(guess.Value(1))
         v = obj.getVParam(guess.Value(2))

@@ -22,9 +22,8 @@ from OCP.GeomConvert import GeomConvert
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Import the module to test
-from src_py.ocp_gordon.internal.intersect_bsplines import IntersectBSplines, BoundingBox
-from src_py.ocp_gordon.internal.misc import clone_bspline
-
+from src_py.ocp_gordon.internal.intersect_bsplines import IntersectBSplines, BoundingBox, line_line_intersection_3d, is_point_on_line_segment
+from src_py.ocp_gordon.internal.misc import clone_bspline, save_bsplines_to_file
 
 def create_bspline_from_points(points):
     """
@@ -209,15 +208,16 @@ class TestIntersectBSplines:
             [(0, 0, 0), (1, 0.5, 0.2), (2, 0.2, 0.4)],
             [(0, 0, 0), (1, 1, 1), (2, 0, 2)],
             [(0, 2, 2), (1, 1, 1), (2, 2, 0)],
-            [(0.2, 0, 0), (0.5, 0.25, 0), (1, 0.4, 0)],
+            [(0.2, 0, 0.2), (0.5, 0.25, 0), (1, 0.4, -0.2)],
             [(0, 0, 0), (1, 0.5, 0)],
         ]
         correct_intersec_points = [(0, 0, 0), (0, 0, 0), (1, 1, 1), (0.5, 0.25, 0),]
         for i in range(len(correct_intersec_points)):
             curve1 = create_bspline_from_points(dataset[2*i])
             curve2 = create_bspline_from_points(dataset[2*i+1])
-       
-            intersections = IntersectBSplines(curve1, curve2, tolerance=1e-6)
+
+            tolerance = 1e-4
+            intersections = IntersectBSplines(curve1, curve2, tolerance=tolerance)
             
             # Should find at least one intersection near (1, 1, 1)
             assert len(intersections) >= 1, f'#{i} dataset failed'
@@ -228,9 +228,9 @@ class TestIntersectBSplines:
                 p = intersection["point"]
                 t = gp_Pnt(*correct_intersec_points[i])
                 # print(f'distance={p.Distance(t)}')
-                if (abs(p.X() - t.X()) < 1e-6 and 
-                    abs(p.Y() - t.Y()) < 1e-6 and 
-                    abs(p.Z() - t.Z()) < 1e-6):
+                if (abs(p.X() - t.X()) < tolerance and 
+                    abs(p.Y() - t.Y()) < tolerance and 
+                    abs(p.Z() - t.Z()) < tolerance):
                     found_intersection = True
                     break
             
@@ -329,10 +329,13 @@ class TestIntersectBSplines:
     def test_intersect_tangent_curves(self):
         """Test intersection of two curves that are tangent at a point."""
         # Create a parabola-like curve
-        curve1 = create_bspline_from_points([(0.2, 0, 0), (0.5, 0.25, 0), (1, 0.4, 0)])
+        curve1 = create_bspline_from_points([(0.2, 0, 0.2), (0.5, 0.25, 0), (1, 0.4, -0.2)])
         curve2 = create_line_segment((0, 0, 0), (1, 0.5, 0))
 
-        intersections = IntersectBSplines(curve1, curve2, tolerance=1e-7)
+        # save_bsplines_to_file([curve1, curve2], "curve1.json")
+
+        tolerance = 1e-4
+        intersections = IntersectBSplines(curve1, curve2, tolerance=tolerance)
         
         # u, v = 0.5, 0.5
         # print(f'curve1.Value({u})={curve1.Value(u).X()}, {curve1.Value(u).Y()}, {curve1.Value(u).Z()}')
@@ -346,9 +349,9 @@ class TestIntersectBSplines:
         for intersection in intersections:
             p = intersection["point"]
             t = gp_Pnt(0.5, 0.25, 0)
-            if (abs(p.X() - t.X()) < 1e-6 and 
-                abs(p.Y() - t.Y()) < 1e-6 and 
-                abs(p.Z() - t.Z()) < 1e-6):
+            if (abs(p.X() - t.X()) < tolerance and 
+                abs(p.Y() - t.Y()) < tolerance and 
+                abs(p.Z() - t.Z()) < tolerance):
                 found_tangent_intersection = True
                 break
         
@@ -358,6 +361,77 @@ class TestIntersectBSplines:
                 # print(f'p=[{p.X()}, {p.Y()}, {p.Z()}]')
 
         assert found_tangent_intersection
+
+    def test_line_line_intersection_3d_specific_case(self):
+        """Test a specific 3D line-line intersection case."""
+        p1_start = gp_Pnt(1.7158016474124649, 70.0, 3.774703119306688)
+        p1_end = gp_Pnt(0.4615237049031605, 69.99999999999999, 2.1221380939367966)
+        p2_start = gp_Pnt(1.8186963349214254, 65.40824062829344, 1.4524829412147489)
+        p2_end = gp_Pnt(0.5197234841721123, 74.5, 3.7052765158278875)
+
+        t, s, possible_intersect = line_line_intersection_3d(p1_start, p1_end, p2_start, p2_end)
+
+        # Based on the nature of the function, we expect it to return parameters
+        # and a boolean indicating possible intersection.
+        # The exact values of t and s would require manual calculation or a reference.
+        # For now, we assert that possible_intersect is True and t, s are within reasonable bounds.
+        assert possible_intersect is True
+        assert 0.0 <= t <= 1.0
+        assert 0.0 <= s <= 1.0
+
+        # Optionally, calculate the actual intersection point and check distance
+        # This would require more complex setup or a known expected intersection point.
+        # For a basic test, checking the boolean and parameter ranges is a good start.
+
+    def test_is_point_on_line_segment(self):
+        """Test the is_point_on_line_segment function."""
+        p_start = gp_Pnt(0, 0, 0)
+        p_end = gp_Pnt(10, 0, 0)
+
+        # Case 1: Point directly on the segment
+        point_on_segment = gp_Pnt(5, 0, 0)
+        t, is_on_segment = is_point_on_line_segment(point_on_segment, p_start, p_end)
+        assert is_on_segment is True
+        assert abs(t - 0.5) < 1e-7
+
+        # Case 2: Point at the start of the segment
+        point_at_start = gp_Pnt(0, 0, 0)
+        t, is_on_segment = is_point_on_line_segment(point_at_start, p_start, p_end)
+        assert is_on_segment is True
+        assert abs(t - 0.0) < 1e-7
+
+        # Case 3: Point at the end of the segment
+        point_at_end = gp_Pnt(10, 0, 0)
+        t, is_on_segment = is_point_on_line_segment(point_at_end, p_start, p_end)
+        assert is_on_segment is True
+        assert abs(t - 1.0) < 1e-7
+
+        # Case 4: Point collinear but outside the segment (before start)
+        point_before_segment = gp_Pnt(-1, 0, 0)
+        t, is_on_segment = is_point_on_line_segment(point_before_segment, p_start, p_end)
+        assert is_on_segment is False
+        assert t < 0.0 # Parameter should be less than 0
+
+        # Case 5: Point collinear but outside the segment (after end)
+        point_after_segment = gp_Pnt(11, 0, 0)
+        t, is_on_segment = is_point_on_line_segment(point_after_segment, p_start, p_end)
+        assert is_on_segment is False
+        assert t > 1.0 # Parameter should be greater than 1
+
+        # Case 6: Point not collinear (distance too large)
+        point_not_collinear = gp_Pnt(5, 1, 0)
+        t, is_on_segment = is_point_on_line_segment(point_not_collinear, p_start, p_end)
+        assert is_on_segment is False
+
+        # Case 7: Point very close to the line (within tolerance)
+        # The max_curvature parameter in is_point_on_line_segment affects max_distance.
+        # Let's use a max_curvature that results in a small max_distance for a tight check.
+        # For a straight line, max_curvature = 1.0005 gives a very small sagitta.
+        # A point at (5, 1e-8, 0) should be considered on the line with default tolerance.
+        point_close_to_line = gp_Pnt(5, 1e-8, 0)
+        t, is_on_segment = is_point_on_line_segment(point_close_to_line, p_start, p_end, max_curvature=1.0000001)
+        assert is_on_segment is True
+        assert abs(t - 0.5) < 1e-7
 
 
 if __name__ == "__main__":

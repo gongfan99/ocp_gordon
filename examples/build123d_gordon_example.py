@@ -8,9 +8,12 @@ functionality with build123d's OCP integration.
 from typing import Union, List
 from build123d import *  # type: ignore
 import numpy as np
-from ocp_vscode import show, Camera
+from ocp_vscode import show, Camera, set_defaults
 
 from build123d_face_ext import Face_ext
+
+# set_defaults(reset_camera=Camera.CENTER, helper_scale=5)
+set_defaults(reset_camera=Camera.KEEP, helper_scale=5)
 
 # %%
 
@@ -119,7 +122,7 @@ def create_test_curves3():
         (0, 4, 4.56),
         (0, 5, 5.15),
         (0, 7, 5.70),
-        (0, 10, 6.18),
+        (0, 10, 6.05),
         (0, 15, 6.25),
         (0, 30, 6.25),
         (0, 50, 6.21),
@@ -130,7 +133,7 @@ def create_test_curves3():
     bottom_guide_points = [
         (0, 0, -0.37),
         (0, 1, -0.92),
-        (0, 2.2, -1.29),
+        (0, 2.2, -1.32),
         (0, 3, -1.54),
         (0, 4, -1.77),
         (0, 5, -1.91),
@@ -138,13 +141,18 @@ def create_test_curves3():
         (0, 10, -2.10),
         (0, 15, -2.13),
         (0, 30, -2.10),
-        (0, 50, -2.10),
+        (0, 48, -2.10),
+        (0, 50, -2.06),
+        (0, 52, -1.91),
         (0, 60, -0.55),
+        (0, 68, 1.47),
         (0, 74.5, 3.49),
     ]
 
     guide1 = Spline(top_guide_points) # top guide
     guide2 = Spline(bottom_guide_points) # bottom guide
+    
+    # points = [Vector(*p) for p in top_guide_points]
 
     # create a circle passing p1 and p2 as diameter
     def circle_by_2_point(p1: Vector, p2: Vector):
@@ -153,7 +161,7 @@ def create_test_curves3():
         c1 = CenterArc(center=(0,0,0), radius=abs(p1-p2)/2, start_angle=0, arc_size=360)
         return c1.locate(loc1)
 
-    profile_section_points = [0, 2.2, 5, 10, 30, 50, top_guide_points[-1][1]]
+    profile_section_points = [0, 5, 10, 30, 50, top_guide_points[-1][1]]
 
     for section_point in profile_section_points:
         point1 = guide1.intersect(Plane((0, section_point, 0), z_dir=(0, -1, 0)))
@@ -164,10 +172,14 @@ def create_test_curves3():
             if vertex1 is not None and vertex2 is not None:
                 profiles.append(circle_by_2_point(vertex1.center(), vertex2.center()))
 
-    guide3 = Spline([p@0 for p in profiles])
-    guide4 = guide3.mirror(Plane.YZ)
-    guides = [guide1, guide2, guide3, guide4]
+    guide_points = [0]
+    guides = [guide1, guide2]
+    for u in guide_points:
+        guide3 = Spline([p@u for p in profiles])
+        guide4 = guide3.mirror(Plane.YZ)
+        guides.extend([guide3, guide4])
     
+    # show(*points, *profiles, *guides)
     return profiles, guides
 
 if __name__ == "__main__":
@@ -180,7 +192,7 @@ if __name__ == "__main__":
     # profiles, guides = create_test_curves1()
     # profiles, guides = create_test_curves2()
     profiles, guides = create_test_curves3()
-    show(*profiles, *guides, reset_camera=Camera.KEEP)
+    # show(*profiles, *guides, reset_camera=Camera.KEEP)
     
     print(f"Created {len(profiles)} profile curves and {len(guides)} guide curves")
     
@@ -192,10 +204,14 @@ if __name__ == "__main__":
             profiles, guides, tolerance=3e-4
         )
 
-        print("Successfully created Gordon surface!")
-        print("The resulting surface can be exported or used in further CAD operations.")
-        
-        # point01 = Vector(face10.position_at(0.8,0))
+        edge20 = (face10.edges() > Axis.Y)[0]
+        face20 = Face.make_surface_patch([(edge20, face10, ContinuityLevel.C2)])
 
-        show(face10, *profiles, *guides, alphas=[1], reset_camera=Camera.KEEP)
+        edge30 = (face10.edges() < Axis.Y)[0]
+        face30 = Face.make_surface_patch([(edge30, face10, ContinuityLevel.C0)])
+
+        shell10 = Shell((face10, face20, face30))
+        solid10 = Solid(shell10)
+
+        show(solid10, *profiles, *guides)
         

@@ -1,12 +1,14 @@
 # %%
 # This file extends the class build123d.Face to include gorden_surface()
 
-from typing import Union, List
+import json
+from pathlib import Path
 from build123d import VectorLike, Vector, Edge, Face, ShapeList  # type: ignore
 from OCP.Geom import Geom_Curve, Geom_BSplineCurve, Geom_BSplineSurface
 from OCP.GeomAPI import GeomAPI_PointsToBSpline
 from OCP.GeomConvert import GeomConvert
 from OCP.TColgp import TColgp_Array1OfPnt
+from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger
 from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeFace
 from OCP.BRep import BRep_Tool
 from OCP.TopoDS import TopoDS_Face
@@ -18,14 +20,20 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
-# from src_py.ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
+# from ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
+from src_py.ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
 
 # %%
 def convert_bspline_to_edge(curve: Geom_Curve | Geom_BSplineCurve) -> Edge:
     make_edge = BRepBuilderAPI_MakeEdge(curve)
     ocp_edge = make_edge.Edge()
     return Edge(ocp_edge)
+
+def convert_edge_to_bspline(edge: Edge) -> Geom_BSplineCurve:
+    if edge.wrapped is None:
+        raise ValueError("Edge cannot be empty")
+    curve = BRep_Tool.Curve_s(edge.wrapped, 0, 1)
+    return GeomConvert.CurveToBSplineCurve_s(curve)
 
 def convert_bspline_surface_to_face(surface: Geom_BSplineSurface) -> Face:
     make_face = BRepBuilderAPI_MakeFace(surface, 1e-4) # Use a small tolerance
@@ -53,8 +61,8 @@ class Face_ext(Face):
     @classmethod
     def gordon_surface(
         cls,
-        profiles: List[Edge] | ShapeList[Edge],
-        guides: List[Edge] | ShapeList[Edge],
+        profiles: list[Edge] | ShapeList[Edge],
+        guides: list[Edge] | ShapeList[Edge],
         tolerance: float = 3e-4,
     ):
         """
@@ -68,13 +76,17 @@ class Face_ext(Face):
         Returns:
             A Face_ext object representing the interpolated Gordon surface.
         """
-        ocp_profiles: List[Geom_Curve] = []
-        ocp_guides: List[Geom_Curve] = []
+        ocp_profiles: list[Geom_Curve] = []
+        ocp_guides: list[Geom_Curve] = []
 
         for edge in profiles:
+            if edge.wrapped is None:
+                raise ValueError("error")
             ocp_profiles.append(BRep_Tool.Curve_s(edge.wrapped, 0, 1))
 
         for edge in guides:
+            if edge.wrapped is None:
+                raise ValueError("error")
             ocp_guides.append(BRep_Tool.Curve_s(edge.wrapped, 0, 1))
 
         gordon_bspline_surface = interpolate_curve_network(
@@ -86,8 +98,8 @@ class Face_ext(Face):
     # @classmethod
     # def gordon_surface_debug(
     #     cls,
-    #     profiles: List[Edge] | ShapeList[Edge],
-    #     guides: List[Edge] | ShapeList[Edge],
+    #     profiles: list[Edge] | ShapeList[Edge],
+    #     guides: list[Edge] | ShapeList[Edge],
     #     tolerance: float = 1e-4,
     # ):
     #     """
@@ -101,8 +113,8 @@ class Face_ext(Face):
     #     Returns:
     #         A Face_ext object representing the interpolated Gordon surface.
     #     """
-    #     ocp_profiles: List[Geom_Curve] = []
-    #     ocp_guides: List[Geom_Curve] = []
+    #     ocp_profiles: list[Geom_Curve] = []
+    #     ocp_guides: list[Geom_Curve] = []
 
     #     for edge in profiles:
     #         ocp_profiles.append(BRep_Tool.Curve_s(edge.wrapped, edge.param_at(0), edge.param_at(1)))
@@ -123,7 +135,7 @@ class Face_ext(Face):
 
     # def get_poles(self):
     #     ocp_surf: Geom_BSplineSurface = convert_face_to_bspline_surface(self.wrapped)
-    #     poles: List[List[Vector]] = []
+    #     poles: list[List[Vector]] = []
     #     for u in range(1, ocp_surf.NbUPoles()+1):
     #         poles.append([])
     #         for v in range(1, ocp_surf.NbVPoles()+1):
@@ -136,6 +148,7 @@ class Face_ext(Face):
     #     curve = BRep_Tool.Curve_s(edge.wrapped, 0, 1)
     #     bspline = GeomConvert.CurveToBSplineCurve_s(curve)
     #     return convert_bspline_to_edge(bspline)
+
 
 if __name__ == "__main__":
     pass
