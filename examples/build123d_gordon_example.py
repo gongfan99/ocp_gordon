@@ -10,10 +10,10 @@ from build123d import *  # type: ignore
 import numpy as np
 from ocp_vscode import show, Camera, set_defaults
 
-from build123d_face_ext import Face_ext
-
 # set_defaults(reset_camera=Camera.CENTER, helper_scale=5)
 set_defaults(reset_camera=Camera.KEEP, helper_scale=5)
+
+from build123d_face_ext import Face_ext
 
 # %%
 

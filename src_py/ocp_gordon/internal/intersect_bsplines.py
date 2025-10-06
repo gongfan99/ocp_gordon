@@ -448,7 +448,7 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
             if cx1.Value(param1).Distance(cx2_last_point) < _tolerance_distance:
                 return param1, v
 
-            t, possible_intersect = is_point_on_line_segment(cx1.Value(param1), cx2_first_point, cx2_last_point)
+            t, possible_intersect = is_point_on_line_segment(cx1.Value(param1), cx2_first_point, cx2_last_point, max(curvature(cx1), curvature(cx2)))
             if not possible_intersect:
                 return None, None
         
@@ -513,7 +513,7 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
         p2_end = c2.Value(c2.LastParameter())
 
         t_closest, s_closest, possible_intersect = line_line_intersection_3d(
-            p1_start, p1_end, p2_start, p2_end
+            p1_start, p1_end, p2_start, p2_end, max(curvature(c1), curvature(c2))
         )
 
         if not possible_intersect:
@@ -525,7 +525,6 @@ def IntersectBSplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve, tole
         guess.SetValue(2, s_closest)
 
         # C++ uses 1e-10 as the aTolenrance for math_FRPR which seems to be an error
-        converged = False
         for i in range(3):
             converged = math_BFGS(obj, guess, _tolerance_distance * _tolerance_distance)
             if converged:
