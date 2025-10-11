@@ -1,36 +1,36 @@
 import math
 import sys
-from typing import List, Tuple, Any, TypedDict
-from scipy.optimize import minimize_scalar, OptimizeResult
+from typing import Any, Callable, TypedDict
 
+from OCP.Geom import Geom_BSplineCurve, Geom_Curve
 from OCP.gp import gp_Pnt, gp_Vec
-from OCP.Geom import Geom_Curve, Geom_BSplineCurve
+from scipy.optimize import OptimizeResult, minimize_scalar
 
 from .misc import (
-    clone_bspline,
-    math_Vector,
     Standard_Real,
-    math_MultipleVarFunctionWithGradient,
+    clone_bspline,
     math_BFGS,
+    math_MultipleVarFunctionWithGradient,
+    math_Vector,
 )
 
 # --- Helper functions and classes from C++ ---
 
 
-def ReplaceAdjacentWithMerged(list_obj, is_adjacent, merged):
-    it = 0
-    while it < len(list_obj):
-        nextIt = it + 1
-        if nextIt >= len(list_obj):
-            break
+# def ReplaceAdjacentWithMerged(list_obj, is_adjacent, merged):
+# it = 0
+# while it < len(list_obj):
+# nextIt = it + 1
+# if nextIt >= len(list_obj):
+# break
 
-        if is_adjacent(list_obj[it], list_obj[nextIt]):
-            merged_val = merged(list_obj[it], list_obj[nextIt])
-            list_obj.pop(it)
-            list_obj.pop(it)
-            list_obj.insert(it, merged_val)
-        else:
-            it = nextIt
+# if is_adjacent(list_obj[it], list_obj[nextIt]):
+# merged_val = merged(list_obj[it], list_obj[nextIt])
+# list_obj.pop(it)
+# list_obj.pop(it)
+# list_obj.insert(it, merged_val)
+# else:
+# it = nextIt
 
 
 def maxval(v1, v2):
@@ -117,8 +117,8 @@ def curvature(curve: Geom_BSplineCurve) -> float:
         total += dist
 
     if abs(len_curve) < 1e-15:
-        return 1.0
-    return total / len_curve
+        return 1e9
+    return max(total / len_curve, 1.00001)
 
 
 class BoundingBoxPair:
@@ -222,25 +222,43 @@ class CurveCurveDistanceObjective(math_MultipleVarFunctionWithGradient):
         self.m_c1.D1(u, p1, d1_vec)
         self.m_c2.D1(v, p2, d2_vec)
 
-        diff = gp_Vec(p1.X() - p2.X(), p1.Y() - p2.Y(), p1.Z() - p2.Z())
+        diff = gp_Vec(p2, p1)  # p1 - p2
         F.value = diff.SquareMagnitude()
 
         G.SetValue(
             1,
-            2.0
-            * diff.Dot(d1_vec)
-            * (self.m_c1.LastParameter() - self.m_c1.FirstParameter())
+            2.0 * diff.Dot(d1_vec)
+            # * (self.m_c1.LastParameter() - self.m_c1.FirstParameter())
             * self.d_getUParam(X.Value(1)),
         )
         G.SetValue(
             2,
-            -2.0
-            * diff.Dot(d2_vec)
-            * (self.m_c2.LastParameter() - self.m_c2.FirstParameter())
+            -2.0 * diff.Dot(d2_vec)
+            # * (self.m_c2.LastParameter() - self.m_c2.FirstParameter())
             * self.d_getVParam(X.Value(2)),
         )
 
         return True
+
+
+def find_split_point(curve: Geom_BSplineCurve):
+    """
+    Find the max inner multiplicity. If it is higher than 1, return the knot.
+    otherwise return the mid point
+    """
+    mid_point = 0.5 * (curve.FirstParameter() + curve.LastParameter())
+    if curve.IsCN(curve.Degree() - 1):
+        return mid_point
+
+    max_inner_mult_index = 2
+    for i in range(3, curve.NbKnots()):
+        if curve.Multiplicity(i) > curve.Multiplicity(max_inner_mult_index):
+            max_inner_mult_index = i
+
+    if curve.Multiplicity(max_inner_mult_index) > 1:
+        return curve.Knot(max_inner_mult_index)
+
+    return mid_point
 
 
 def getRangesOfIntersection(
@@ -259,8 +277,8 @@ def getRangesOfIntersection(
     if c1_curvature <= max_curvature and c2_curvature <= max_curvature:
         return [BoundingBoxPair(h1, h2)]
 
-    curve1MidParm = 0.5 * (curve1.FirstParameter() + curve1.LastParameter())
-    curve2MidParm = 0.5 * (curve2.FirstParameter() + curve2.LastParameter())
+    curve1MidParm = find_split_point(curve1)
+    curve2MidParm = find_split_point(curve2)
 
     results = []
 
@@ -301,14 +319,19 @@ def getRangesOfIntersection(
     return results
 
 
-def replace_adjacent_in_list(list_obj, is_adjacent_func, merge_func):
+def replace_adjacent_in_list(
+    avoid_u_values: list[float],
+    list_obj: list[BoundingBox],
+    is_adjacent_func: Callable[[list[float], BoundingBox, BoundingBox], bool],
+    merge_func: Callable[[BoundingBox, BoundingBox], BoundingBox],
+):
     i = 0
     while i < len(list_obj):
         next_i = i + 1
         if next_i >= len(list_obj):
             break
 
-        if is_adjacent_func(list_obj[i], list_obj[next_i]):
+        if is_adjacent_func(avoid_u_values, list_obj[i], list_obj[next_i]):
             merged_val = merge_func(list_obj[i], list_obj[next_i])
             list_obj.pop(i)
             list_obj.pop(i)
@@ -349,7 +372,7 @@ def is_point_on_line_segment(
 
     # use a circular arc to estimate the max possible distance
     rel_sagitta = 0.6123724 * math.sqrt(max_curvature - 1)
-    max_distance = 3 * rel_sagitta * line_length  # 3 for margin
+    max_distance = 1.2 * rel_sagitta * line_length  # 1.2 for margin
 
     # check the range of t
     if t * line_length < -max_distance or t * line_length > line_length + max_distance:
@@ -403,7 +426,7 @@ def line_line_intersection_3d(
     p1_mag = math.sqrt(a)
     p2_mag = math.sqrt(c)
     rel_sagitta = 0.6123724 * math.sqrt(max_curvature - 1)
-    max_distance = 3 * rel_sagitta * (p1_mag + p2_mag)  # 3 for margin
+    max_distance = 1.2 * rel_sagitta * (p1_mag + p2_mag)  # 1.2 for margin
 
     # check the range of t, s
     if t * p1_mag < -max_distance or t * p1_mag > p1_mag + max_distance:
@@ -461,12 +484,39 @@ def IntersectBSplines(
                 unique_curve2_ints.append(curve2_ints[i])
     curve2_ints = unique_curve2_ints
 
-    def is_adjacent(b1: BoundingBox, b2: BoundingBox) -> bool:
+    def is_adjacent(
+        avoid_u_values: list[float], b1: BoundingBox, b2: BoundingBox
+    ) -> bool:
         EPS = 1e-15
+        if (
+            len(avoid_u_values) > 0
+            and min(
+                [
+                    min(abs(b1.range.max - u), abs(b2.range.min - u))
+                    for u in avoid_u_values
+                ]
+            )
+            < EPS
+        ):
+            return False
         return abs(b1.range.max - b2.range.min) < EPS
 
-    replace_adjacent_in_list(curve1_ints, is_adjacent, merge_boxes)
-    replace_adjacent_in_list(curve2_ints, is_adjacent, merge_boxes)
+    def create_avoid_u_values(curve: Geom_BSplineCurve):
+        """
+        We want to avoid merge adjacent boxes if the merge creates a kink
+        """
+        avoid_u_values: list[float] = []
+        for i in range(2, curve.NbKnots()):
+            if curve.Multiplicity(i) > 1:
+                avoid_u_values.append(curve.Knot(i))
+        return avoid_u_values
+
+    replace_adjacent_in_list(
+        create_avoid_u_values(curve1), curve1_ints, is_adjacent, merge_boxes
+    )
+    replace_adjacent_in_list(
+        create_avoid_u_values(curve2), curve2_ints, is_adjacent, merge_boxes
+    )
 
     intersectionCandidates: list[BoundingBoxPair] = []
     for b1 in curve1_ints:
@@ -476,11 +526,20 @@ def IntersectBSplines(
 
     results: list[IntersectType] = []
 
+    def append_result(results: list[IntersectType], result: IntersectType):
+        for r in results:
+            if (
+                abs(r["parmOnCurve1"] - result["parmOnCurve1"]) < tolerance
+                and abs(r["parmOnCurve2"] - result["parmOnCurve2"]) < tolerance
+            ):
+                return
+        results.append(result)
+
+    _tolerance_distance = max(1e-10, min(1e-5, tolerance))
+
     for boxes in intersectionCandidates:
         c1 = BSplineAlgorithms.trimCurve(curve1, boxes.b1.range.min, boxes.b1.range.max)
         c2 = BSplineAlgorithms.trimCurve(curve2, boxes.b2.range.min, boxes.b2.range.max)
-
-        _tolerance_distance = max(1e-10, min(1e-5, tolerance))
 
         # When the intersection is at the endpoints, it is hard for 2d minimizer to converge.
         # So we check the endpoints first before using the 2d minimizer
@@ -510,7 +569,7 @@ def IntersectBSplines(
                 cx1.Value(param1),
                 cx2_first_point,
                 cx2_last_point,
-                max(curvature(cx1), curvature(cx2), 1.0005),
+                max(curvature(cx1), curvature(cx2)),
             )
             if not possible_intersect:
                 return None, None
@@ -533,7 +592,7 @@ def IntersectBSplines(
                 "parmOnCurve2": v,
                 "point": get_mid_point(u, v),  # c1.Value(c1.FirstParameter())
             }
-            results.append(result)
+            append_result(results, result)
             continue
 
         u, v = check_point_on_curve2(c1, c1.LastParameter(), c2)
@@ -543,7 +602,7 @@ def IntersectBSplines(
                 "parmOnCurve2": v,
                 "point": get_mid_point(u, v),  # c1.Value(c1.LastParameter())
             }
-            results.append(result)
+            append_result(results, result)
             continue
 
         v, u = check_point_on_curve2(c2, c2.FirstParameter(), c1)
@@ -553,7 +612,7 @@ def IntersectBSplines(
                 "parmOnCurve2": v,
                 "point": get_mid_point(u, v),  # c2.Value(c2.FirstParameter())
             }
-            results.append(result)
+            append_result(results, result)
             continue
 
         v, u = check_point_on_curve2(c2, c2.LastParameter(), c1)
@@ -563,7 +622,7 @@ def IntersectBSplines(
                 "parmOnCurve2": v,
                 "point": get_mid_point(u, v),  # c2.Value(c2.LastParameter())
             }
-            results.append(result)
+            append_result(results, result)
             continue
 
         # C++ code starts from here. Hence, it only uses 2d minimizer without first checking intersection at endpoints
@@ -580,7 +639,7 @@ def IntersectBSplines(
             p1_end,
             p2_start,
             p2_end,
-            max(curvature(c1), curvature(c2), 1.0005),
+            max(curvature(c1), curvature(c2)),
         )
 
         if not possible_intersect:
@@ -592,7 +651,7 @@ def IntersectBSplines(
         guess.SetValue(2, s_closest)
 
         # C++ uses 1e-10 as the aTolenrance for math_FRPR which seems to be an error
-        for i in range(3):
+        for i in range(2):
             converged = math_BFGS(obj, guess, _tolerance_distance * _tolerance_distance)
             if converged:
                 break
@@ -619,13 +678,13 @@ def IntersectBSplines(
         distance = c1.Value(u).Distance(c2.Value(v))
         # print(f'distance={distance}, _tolerance_distance={_tolerance_distance}, tolerance={tolerance}')
 
-        if distance < tolerance:  # _tolerance_distance not work well
+        if distance < tolerance:
             result: IntersectType = {
                 "parmOnCurve1": u,
                 "parmOnCurve2": v,
                 "point": get_mid_point(u, v),
             }
-            results.append(result)
+            append_result(results, result)
 
     return results
 

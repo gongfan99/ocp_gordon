@@ -1,15 +1,18 @@
 import json
 from pathlib import Path
 from typing import List
+
+import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
+from OCP.GeomConvert import GeomConvert_CompCurveToBSplineCurve
+from OCP.gp import gp_Pnt
+from OCP.Precision import Precision
+from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt
 from OCP.TColStd import (
-    TColStd_Array1OfReal,
     TColStd_Array1OfInteger,
+    TColStd_Array1OfReal,
     TColStd_Array2OfReal,
 )
-from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt
-from OCP.gp import gp_Pnt
-import numpy as np
 from scipy.optimize import minimize
 
 # This file implements some missing classes/functions for OCP
@@ -352,7 +355,7 @@ def math_BFGS(
 
 
 # save_bsplines_to_file() and load_bsplines_from_file() are convenient for debugging
-def save_bsplines_to_file(splines: list[Geom_BSplineCurve], file_path: str):
+def save_bsplines_to_object(splines: list[Geom_BSplineCurve]):
 
     obj = []
 
@@ -379,20 +382,15 @@ def save_bsplines_to_file(splines: list[Geom_BSplineCurve], file_path: str):
             }
         )
 
+    return obj
+
+
+def save_bsplines_to_file(splines: list[Geom_BSplineCurve], file_path: str):
     with open(Path.home() / file_path, "w") as f:
-        json.dump(obj, f, indent=2)
+        json.dump(save_bsplines_to_object(splines), f, indent=2)
 
 
-def load_bsplines_from_file(file_path: str | Path):
-
-    if Path(file_path).exists():
-        full_file_path = Path(file_path)
-    else:
-        full_file_path = Path.home() / file_path
-
-    with open(full_file_path, "r") as f:
-        objs = json.load(f)
-
+def load_bsplines_from_object(objs: list):
     bsplines: list[Geom_BSplineCurve] = []
     for obj in objs:
         # Get poles
@@ -435,3 +433,35 @@ def load_bsplines_from_file(file_path: str | Path):
         bsplines.append(new_spline)
 
     return bsplines
+
+
+def load_bsplines_from_file(file_path: str | Path):
+
+    if Path(file_path).exists():
+        full_file_path = Path(file_path)
+    else:
+        full_file_path = Path.home() / file_path
+
+    with open(full_file_path, "r") as f:
+        objs = json.load(f)
+
+    return load_bsplines_from_object(objs)
+
+
+def concat_two_bsplines(curve1: Geom_BSplineCurve, curve2: Geom_BSplineCurve):
+    if curve1.IsClosed() or curve2.IsClosed():
+        raise ValueError("The two splines must not be closed")
+
+    max_degree = max(curve1.Degree(), curve2.Degree())
+    if curve1.Degree() < max_degree:
+        curve1.IncreaseDegree(max_degree)
+    if curve2.Degree() < max_degree:
+        curve2.IncreaseDegree(max_degree)
+
+    tol = Precision.Confusion_s()
+
+    comb = GeomConvert_CompCurveToBSplineCurve(curve2)
+    if not comb.Add(curve1, tol, True, True):
+        raise ValueError("The two splines must connect together")
+    merged = comb.BSplineCurve()
+    return merged
