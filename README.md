@@ -52,13 +52,9 @@ python -m pytest
 
 ## Notable Difference from C++ Code
 
-- In `intersect_bsplines.py`, the `math_BFGS` method is polyfilled and used in place of `math_FRPR`, as neither `math_BFGS` nor `math_FRPR` is usable in OCP due to the lack of `math_Vector` exposure. The `activate()` function in this file has also been modified because the original implementation did not perform well. Additionally, the `IntersectBSplines()` function now checks for intersections at the endpoints before invoking the 2D minimizer.
+- In `intersect_bsplines.py`, the `math_BFGS` method is polyfilled and used in place of `math_FRPR`, as neither `math_BFGS` nor `math_FRPR` is usable in OCP due to the lack of `math_Vector` exposure. The intersect detection algorithm has been improved for both speed and reliability.
 - In the `_solve()` function of `bspline_approx_interp.py`, regularization has been added to prevent singular matrix issues, which can occur in cases such as when the input curve is a B-spline derived from a circle.
 - A new file, `misc.py`, has been introduced to implement missing OCP utilities. The primary additions include `clone_bspline` and `math_BFGS`.
-
-## Caveats
-
-- In the `IntersectBSplines` function, the 2D minimizer performs poorly when the number of profiles or guides exceeds five. Increasing the `tolerance` parameter in `interpolate_curve_network()` can help mitigate this issue.
 
 ## License
 

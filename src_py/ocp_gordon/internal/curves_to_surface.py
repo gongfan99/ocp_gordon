@@ -5,14 +5,22 @@ This module provides functionality to create surfaces by skinning
 a set of compatible B-spline curves.
 """
 
+from typing import List, Optional, Tuple
+
 import numpy as np
+from OCP.BSplCLib import BSplCLib  # For C++ BSplCLib equivalent
 from OCP.Geom import (
     Geom_BSplineCurve,
     Geom_BSplineSurface,
     Geom_Curve,
     Geom_TrimmedCurve,
 )
+from OCP.GeomAPI import (  # Equivalent to Geom2dAPI_ProjectPointOnCurve for 3D
+    GeomAPI_Interpolate,
+)
 from OCP.GeomConvert import GeomConvert
+from OCP.gp import gp_Pnt
+from OCP.Precision import Precision  # For C++ Precision equivalent
 from OCP.TColgp import (
     TColgp_Array1OfPnt,
     TColgp_Array2OfPnt,
@@ -20,26 +28,18 @@ from OCP.TColgp import (
     TColgp_HArray1OfPnt2d,
 )
 from OCP.TColStd import (
-    TColStd_Array1OfReal,
     TColStd_Array1OfInteger,
-    TColStd_HArray1OfReal,
-    TColStd_HArray1OfInteger,
+    TColStd_Array1OfReal,
     TColStd_Array2OfReal,
+    TColStd_HArray1OfInteger,
+    TColStd_HArray1OfReal,
 )
-from OCP.gp import gp_Pnt
-from OCP.GeomAPI import (
-    GeomAPI_Interpolate,
-)  # Equivalent to Geom2dAPI_ProjectPointOnCurve for 3D
-from OCP.BSplCLib import BSplCLib  # For C++ BSplCLib equivalent
-from OCP.Precision import Precision  # For C++ Precision equivalent
 
 from .bspline_algorithms import BSplineAlgorithms
-from .error import error, ErrorCode  # Import ErrorCode
-from .points_to_bspline_interpolation import (
+from .error import ErrorCode, error  # Import ErrorCode
+from .points_to_bspline_interpolation import (  # Import PointsToBSplineInterpolation
     PointsToBSplineInterpolation,
-)  # Import PointsToBSplineInterpolation
-
-from typing import List, Tuple, Optional
+)
 
 
 # Helper function to clamp BSpline (equivalent to C++ clampBSpline)
@@ -368,28 +368,5 @@ class CurvesToSurface:
             degree_u,
             degree_v,
         )
-
-        # num_poles_v = interp_spline.NbPoles() if interp_spline is not None else 0
-        # weights = TColStd_Array2OfReal(1, num_control_points_u, 1, num_poles_v)
-        # for i in range(1, num_control_points_u + 1):
-        #     for j in range(1, num_poles_v + 1):
-        #         weights.SetValue(i, j, 1.0)  # Default weight
-
-        # # The C++ code does not explicitly set periodicity flags. Assuming False.
-        # u_periodic = False
-        # v_periodic = False
-
-        # self._skinned_surface = Geom_BSplineSurface(
-        #     cp_surf,
-        #     weights,  # Poles and weights
-        #     knots_u,
-        #     knots_v,  # Knot vectors
-        #     mults_u,
-        #     mults_v,  # Multiplicities
-        #     degree_u,
-        #     degree_v,  # Degrees
-        #     u_periodic,
-        #     v_periodic,  # Periodicity flags
-        # )
 
         self._has_performed = True

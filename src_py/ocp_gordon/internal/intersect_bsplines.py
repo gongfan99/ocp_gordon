@@ -227,15 +227,11 @@ class CurveCurveDistanceObjective(math_MultipleVarFunctionWithGradient):
 
         G.SetValue(
             1,
-            2.0 * diff.Dot(d1_vec)
-            # * (self.m_c1.LastParameter() - self.m_c1.FirstParameter())
-            * self.d_getUParam(X.Value(1)),
+            2.0 * diff.Dot(d1_vec) * self.d_getUParam(X.Value(1)),
         )
         G.SetValue(
             2,
-            -2.0 * diff.Dot(d2_vec)
-            # * (self.m_c2.LastParameter() - self.m_c2.FirstParameter())
-            * self.d_getVParam(X.Value(2)),
+            -2.0 * diff.Dot(d2_vec) * self.d_getVParam(X.Value(2)),
         )
 
         return True
