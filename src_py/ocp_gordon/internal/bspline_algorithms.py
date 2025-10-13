@@ -6,10 +6,17 @@ parameter computation, degree matching, knot vector manipulation, and
 other B-spline operations.
 """
 
+import bisect  # Import bisect for efficient insertion
+import enum  # Import enum module
+import math
+from typing import List, Tuple, Union
+
 import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface, Geom_Curve
-from OCP.GeomConvert import GeomConvert
+from OCP.Geom2dAPI import Geom2dAPI_Interpolate, Geom2dAPI_ProjectPointOnCurve
 from OCP.GeomAbs import GeomAbs_C2
+from OCP.GeomConvert import GeomConvert
+from OCP.gp import gp_Pnt, gp_Pnt2d
 from OCP.TColgp import (
     TColgp_Array1OfPnt,
     TColgp_Array2OfPnt,
@@ -17,22 +24,16 @@ from OCP.TColgp import (
     TColgp_HArray1OfPnt2d,
 )
 from OCP.TColStd import (
-    TColStd_Array1OfReal,
-    TColStd_HArray1OfReal,
     TColStd_Array1OfInteger,
+    TColStd_Array1OfReal,
     TColStd_HArray1OfInteger,
+    TColStd_HArray1OfReal,
 )
-from OCP.gp import gp_Pnt, gp_Pnt2d
-from OCP.Geom2dAPI import Geom2dAPI_Interpolate, Geom2dAPI_ProjectPointOnCurve
-from typing import List, Tuple, Union
-import math
-import bisect  # Import bisect for efficient insertion
-import enum  # Import enum module
 
-from .intersect_bsplines import IntersectBSplines
 from .approx_result import ApproxResult
+from .error import ErrorCode, error  # Import ErrorCode
+from .intersect_bsplines import IntersectBSplines
 from .misc import clone_bspline, clone_bspline_surface, save_bsplines_to_object
-from .error import error, ErrorCode  # Import ErrorCode
 
 
 # Define SurfaceDirection enum
@@ -695,8 +696,6 @@ class BSplineAlgorithms:
             new_parameters[0], new_parameters[-1], max(101, n_control_pnts * 2), breaks
         )
 
-        import bisect
-
         for kink in kinks:
             bisect.insort_left(parameters, kink)
 
@@ -712,10 +711,7 @@ class BSplineAlgorithms:
             < 6.0 / 180.0 * math.pi
         )
 
-        from .bspline_approx_interp import (
-            BSplineApproxInterp,
-            ApproxResult,
-        )  # Assuming ApproxResult is exported from here
+        from .bspline_approx_interp import BSplineApproxInterp
 
         approximationObj = BSplineApproxInterp(
             points, int(n_control_pnts), 3, makeContinuous

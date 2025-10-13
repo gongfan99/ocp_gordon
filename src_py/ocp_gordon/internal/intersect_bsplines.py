@@ -17,22 +17,6 @@ from .misc import (
 # --- Helper functions and classes from C++ ---
 
 
-# def ReplaceAdjacentWithMerged(list_obj, is_adjacent, merged):
-# it = 0
-# while it < len(list_obj):
-# nextIt = it + 1
-# if nextIt >= len(list_obj):
-# break
-
-# if is_adjacent(list_obj[it], list_obj[nextIt]):
-# merged_val = merged(list_obj[it], list_obj[nextIt])
-# list_obj.pop(it)
-# list_obj.pop(it)
-# list_obj.insert(it, merged_val)
-# else:
-# it = nextIt
-
-
 def maxval(v1, v2):
     return v1 if v1 > v2 else v2
 
@@ -117,7 +101,7 @@ def curvature(curve: Geom_BSplineCurve) -> float:
         total += dist
 
     if abs(len_curve) < 1e-15:
-        return 1e9
+        return 1e-9 if total < 1e-15 else 1e9
     return max(total / len_curve, 1.00001)
 
 

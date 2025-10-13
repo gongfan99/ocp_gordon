@@ -39,24 +39,21 @@ from src_py.ocp_gordon.internal.misc import (
 
 def create_bspline_curve(points: list[gp_Pnt]):
     """
-    Create a B-spline curve from a list of points using GeomAPI_PointsToBSpline.
+    Create a B-spline curve from a list of points using GeomAPI_Interpolate.
 
     Args:
         points: List of gp_Pnt points
 
     Returns:
-        Handle(Geom_BSplineCurve): Approximated B-spline curve
+        Handle(Geom_BSplineCurve): interpolated B-spline curve
     """
     # Create a regular array
     n_points = len(points)
     array = TColgp_HArray1OfPnt(1, n_points)
 
-    # Fill the array with points (indexing starts at 1 in OCP)
     for i, point in enumerate(points, 1):
         array.SetValue(i, point)
 
-    # Create the approximator with reasonable defaults
-    # Parameters: points, min_degree, max_degree, continuity, tolerance
     Interpolator = GeomAPI_Interpolate(array, False, 1e-9)
     Interpolator.Perform()
     return Interpolator.Curve()
@@ -363,6 +360,46 @@ class TestInterpolateCurveNetwork:
     # also very complex to set up with real OCP objects.
 
 
+@pytest.fixture
+def setup_interpolate_data_with_zero_length() -> (
+    tuple[list[Geom_BSplineCurve], list[Geom_BSplineCurve]]
+):
+    # Profiles: zero-length, normal, zero-length
+    profiles = [
+        create_bspline_curve_from_poles(
+            [gp_Pnt(0, 0, 0), gp_Pnt(0, 0, 0)], degree=1
+        ),  # Zero-length
+        create_bspline_curve([gp_Pnt(0, 1, 0), gp_Pnt(1, 1, 0)]),  # Normal
+        create_bspline_curve_from_poles(
+            [gp_Pnt(0, 2, 0), gp_Pnt(0, 2, 0)], degree=1
+        ),  # Zero-length
+    ]
+    # Guides: normal, zero-length, normal
+    guides = [
+        create_bspline_curve([gp_Pnt(0, 0, 0), gp_Pnt(0, 2, 0)]),  # Normal
+        create_bspline_curve(
+            [gp_Pnt(0, 0, 0), gp_Pnt(0.5, 1, 0), gp_Pnt(0, 2, 0)]
+        ),  # Normal
+        create_bspline_curve(
+            [gp_Pnt(0, 0, 0), gp_Pnt(1, 1, 0), gp_Pnt(0, 2, 0)]
+        ),  # Normal
+    ]
+    return profiles, guides
+
+
+def test_interpolate_curve_network_with_zero_length_inputs(
+    setup_interpolate_data_with_zero_length,
+):
+    profiles, guides = setup_interpolate_data_with_zero_length
+    surface = interpolate_curve_network(list(profiles), list(guides))
+    assert isinstance(surface, Geom_BSplineSurface)
+    # Further assertions could check surface properties or evaluation at points
+    # For example, check if the surface passes through the non-zero-length profile's points
+    assert surface.Value(0.5, 0.5).IsEqual(
+        gp_Pnt(0.5, 1, 0), 1e-4
+    )  # Point on the normal profile
+
+
 if __name__ == "__main__":
     if 0:
         pytest.main(
@@ -372,24 +409,4 @@ if __name__ == "__main__":
             ]
         )
     else:
-        pytest.main([f"{__file__}", "-v"])
-    if 0:
-        pytest.main(
-            [
-                f"{__file__}::TestInterpolateCurveNetwork::test_interpolate_curve_network_function_3_4",
-                "-v",
-            ]
-        )
-    else:
-        pytest.main([f"{__file__}", "-v"])
-    if 0:
-        pytest.main(
-            [
-                f"{__file__}::TestInterpolateCurveNetwork::test_interpolate_curve_network_function_3_4",
-                "-v",
-            ]
-        )
-    else:
-        pytest.main([f"{__file__}", "-v"])
-        pytest.main([f"{__file__}", "-v"])
         pytest.main([f"{__file__}", "-v"])
