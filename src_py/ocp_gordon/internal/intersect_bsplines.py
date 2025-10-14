@@ -2,6 +2,7 @@ import math
 import sys
 from typing import Any, Callable, TypedDict
 
+import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_Curve
 from OCP.gp import gp_Pnt, gp_Vec
 from scipy.optimize import OptimizeResult, minimize_scalar
@@ -26,19 +27,21 @@ def sqr(v):
 
 
 def minCoords(p1: gp_Pnt, p2: gp_Pnt) -> gp_Pnt:
-    result = gp_Pnt(p1.X(), p1.Y(), p1.Z())
-    result.SetX(min(p1.X(), p2.X()))
-    result.SetY(min(p1.Y(), p2.Y()))
-    result.SetZ(min(p1.Z(), p2.Z()))
-    return result
+    return gp_Pnt(min(p1.X(), p2.X()), min(p1.Y(), p2.Y()), min(p1.Z(), p2.Z()))
+    # result = gp_Pnt(p1.X(), p1.Y(), p1.Z())
+    # result.SetX(min(p1.X(), p2.X()))
+    # result.SetY(min(p1.Y(), p2.Y()))
+    # result.SetZ(min(p1.Z(), p2.Z()))
+    # return result
 
 
 def maxCoords(p1: gp_Pnt, p2: gp_Pnt) -> gp_Pnt:
-    result = gp_Pnt(p1.X(), p1.Y(), p1.Z())
-    result.SetX(max(p1.X(), p2.X()))
-    result.SetY(max(p1.Y(), p2.Y()))
-    result.SetZ(max(p1.Z(), p2.Z()))
-    return result
+    return gp_Pnt(max(p1.X(), p2.X()), max(p1.Y(), p2.Y()), max(p1.Z(), p2.Z()))
+    # result = gp_Pnt(p1.X(), p1.Y(), p1.Z())
+    # result.SetX(max(p1.X(), p2.X()))
+    # result.SetY(max(p1.Y(), p2.Y()))
+    # result.SetZ(max(p1.Z(), p2.Z()))
+    # return result
 
 
 class Intervall:
@@ -56,12 +59,23 @@ class BoundingBox:
         if isinstance(curve_or_other, Geom_BSplineCurve):
             curve = curve_or_other
             self.range = Intervall(curve.FirstParameter(), curve.LastParameter())
-            self.low = gp_Pnt(math.inf, math.inf, math.inf)
-            self.high = gp_Pnt(-math.inf, -math.inf, -math.inf)
+            np_array = np.zeros((curve.NbPoles(), 3), dtype=np.float64)
             for i in range(1, curve.NbPoles() + 1):
-                p = gp_Pnt(curve.Pole(i).XYZ())
-                self.low = minCoords(self.low, p)
-                self.high = maxCoords(self.high, p)
+                np_array[i - 1] = [
+                    curve.Pole(i).X(),
+                    curve.Pole(i).Y(),
+                    curve.Pole(i).Z(),
+                ]
+            temp = np.min(np_array, axis=0)
+            self.low = gp_Pnt(temp[0], temp[1], temp[2])
+            temp = np.max(np_array, axis=0)
+            self.high = gp_Pnt(temp[0], temp[1], temp[2])
+            # self.low = gp_Pnt(math.inf, math.inf, math.inf)
+            # self.high = gp_Pnt(-math.inf, -math.inf, -math.inf)
+            # for i in range(1, curve.NbPoles() + 1):
+            #     p = gp_Pnt(curve.Pole(i).XYZ())
+            #     self.low = minCoords(self.low, p)
+            #     self.high = maxCoords(self.high, p)
         elif isinstance(curve_or_other, BoundingBox):
             other = curve_or_other
             self.range = Intervall(other.range.min, other.range.max)
@@ -101,8 +115,8 @@ def curvature(curve: Geom_BSplineCurve) -> float:
         total += dist
 
     if abs(len_curve) < 1e-15:
-        return 1e-9 if total < 1e-15 else 1e9
-    return max(total / len_curve, 1.00001)
+        return 1.0 if total < 1e-15 else 1e9
+    return max(total / len_curve, 1.0)
 
 
 class BoundingBoxPair:
