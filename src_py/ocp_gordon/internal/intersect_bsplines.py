@@ -18,30 +18,20 @@ from .misc import (
 # --- Helper functions and classes from C++ ---
 
 
-def maxval(v1, v2):
-    return v1 if v1 > v2 else v2
+# def maxval(v1, v2):
+#     return v1 if v1 > v2 else v2
 
 
-def sqr(v):
-    return v * v
+# def sqr(v):
+#     return v * v
 
 
 def minCoords(p1: gp_Pnt, p2: gp_Pnt) -> gp_Pnt:
     return gp_Pnt(min(p1.X(), p2.X()), min(p1.Y(), p2.Y()), min(p1.Z(), p2.Z()))
-    # result = gp_Pnt(p1.X(), p1.Y(), p1.Z())
-    # result.SetX(min(p1.X(), p2.X()))
-    # result.SetY(min(p1.Y(), p2.Y()))
-    # result.SetZ(min(p1.Z(), p2.Z()))
-    # return result
 
 
 def maxCoords(p1: gp_Pnt, p2: gp_Pnt) -> gp_Pnt:
     return gp_Pnt(max(p1.X(), p2.X()), max(p1.Y(), p2.Y()), max(p1.Z(), p2.Z()))
-    # result = gp_Pnt(p1.X(), p1.Y(), p1.Z())
-    # result.SetX(max(p1.X(), p2.X()))
-    # result.SetY(max(p1.Y(), p2.Y()))
-    # result.SetZ(max(p1.Z(), p2.Z()))
-    # return result
 
 
 class Intervall:
@@ -55,7 +45,7 @@ class Intervall:
 
 
 class BoundingBox:
-    def __init__(self, curve_or_other: Any = None):
+    def __init__(self, curve_or_other: "Geom_BSplineCurve | BoundingBox"):
         if isinstance(curve_or_other, Geom_BSplineCurve):
             curve = curve_or_other
             self.range = Intervall(curve.FirstParameter(), curve.LastParameter())
@@ -70,21 +60,11 @@ class BoundingBox:
             self.low = gp_Pnt(temp[0], temp[1], temp[2])
             temp = np.max(np_array, axis=0)
             self.high = gp_Pnt(temp[0], temp[1], temp[2])
-            # self.low = gp_Pnt(math.inf, math.inf, math.inf)
-            # self.high = gp_Pnt(-math.inf, -math.inf, -math.inf)
-            # for i in range(1, curve.NbPoles() + 1):
-            #     p = gp_Pnt(curve.Pole(i).XYZ())
-            #     self.low = minCoords(self.low, p)
-            #     self.high = maxCoords(self.high, p)
-        elif isinstance(curve_or_other, BoundingBox):
+        else:
             other = curve_or_other
             self.range = Intervall(other.range.min, other.range.max)
             self.low = gp_Pnt(other.low.XYZ())
             self.high = gp_Pnt(other.high.XYZ())
-        else:
-            self.range = Intervall(0.0, 0.0)
-            self.low = gp_Pnt(0.0, 0.0, 0.0)
-            self.high = gp_Pnt(0.0, 0.0, 0.0)
 
     def Intersects(self, other: "BoundingBox", eps: float) -> bool:
         min_coords = maxCoords(self.low, other.low)
@@ -336,6 +316,9 @@ def replace_adjacent_in_list(
 
 def merge_boxes(b1: BoundingBox, b2: BoundingBox) -> BoundingBox:
     new_box = BoundingBox(b1)
+    #             self.range = Intervall(other.range.min, other.range.max)
+    #             self.low = gp_Pnt(other.low.XYZ())
+    #             self.high = gp_Pnt(other.high.XYZ())
     new_box.Merge(b2)
     return new_box
 

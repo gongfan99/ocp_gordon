@@ -139,27 +139,23 @@ def clone_bspline(spline: Geom_BSplineCurve) -> Geom_BSplineCurve:
     # Create a copy by manually constructing from existing data
     # Get poles
     poles = TColgp_Array1OfPnt(1, spline.NbPoles())
-    for i in range(1, spline.NbPoles() + 1):
-        poles.SetValue(i, spline.Pole(i))
+    spline.Poles(poles)
 
     # Get weights
     weights = TColStd_Array1OfReal(1, spline.NbPoles())
-    for i in range(1, spline.NbPoles() + 1):
-        weights.SetValue(i, spline.Weight(i))
+    spline.Weights(weights)
 
     # Get knots
-    knot_array = TColStd_Array1OfReal(1, spline.NbKnots())
-    for i in range(1, spline.NbKnots() + 1):
-        knot_array.SetValue(i, spline.Knot(i))
+    knots = TColStd_Array1OfReal(1, spline.NbKnots())
+    spline.Knots(knots)
 
     # Get multiplicities
-    mult_array = TColStd_Array1OfInteger(1, spline.NbKnots())
-    for i in range(1, spline.NbKnots() + 1):
-        mult_array.SetValue(i, spline.Multiplicity(i))
+    mults = TColStd_Array1OfInteger(1, spline.NbKnots())
+    spline.Multiplicities(mults)
 
     # Create new spline
     new_spline = Geom_BSplineCurve(
-        poles, weights, knot_array, mult_array, spline.Degree(), spline.IsPeriodic()
+        poles, weights, knots, mults, spline.Degree(), spline.IsPeriodic()
     )
 
     return new_spline
@@ -177,51 +173,36 @@ def clone_bspline_surface(surface: Geom_BSplineSurface) -> Geom_BSplineSurface:
     """
     # Get poles
     poles = TColgp_Array2OfPnt(1, surface.NbUPoles(), 1, surface.NbVPoles())
-    for u_idx in range(1, surface.NbUPoles() + 1):
-        for v_idx in range(1, surface.NbVPoles() + 1):
-            poles.SetValue(u_idx, v_idx, surface.Pole(u_idx, v_idx))
+    surface.Poles(poles)
 
     # Get weights
     weights = TColStd_Array2OfReal(1, surface.NbUPoles(), 1, surface.NbVPoles())
-    if surface.IsURational() or surface.IsVRational():
-        for u_idx in range(1, surface.NbUPoles() + 1):
-            for v_idx in range(1, surface.NbVPoles() + 1):
-                weights.SetValue(u_idx, v_idx, surface.Weight(u_idx, v_idx))
-    else:
-        for u_idx in range(1, surface.NbUPoles() + 1):
-            for v_idx in range(1, surface.NbVPoles() + 1):
-                weights.SetValue(
-                    u_idx, v_idx, 1.0
-                )  # Non-rational surfaces have weights of 1.0
+    surface.Weights(weights)
 
     # Get U knots
-    u_knot_array = TColStd_Array1OfReal(1, surface.NbUKnots())
-    for i in range(1, surface.NbUKnots() + 1):
-        u_knot_array.SetValue(i, surface.UKnot(i))
+    u_knots = TColStd_Array1OfReal(1, surface.NbUKnots())
+    surface.UKnots(u_knots)
 
     # Get V knots
-    v_knot_array = TColStd_Array1OfReal(1, surface.NbVKnots())
-    for i in range(1, surface.NbVKnots() + 1):
-        v_knot_array.SetValue(i, surface.VKnot(i))
+    v_knots = TColStd_Array1OfReal(1, surface.NbVKnots())
+    surface.VKnots(v_knots)
 
     # Get U multiplicities
-    u_mult_array = TColStd_Array1OfInteger(1, surface.NbUKnots())
-    for i in range(1, surface.NbUKnots() + 1):
-        u_mult_array.SetValue(i, surface.UMultiplicity(i))
+    u_mults = TColStd_Array1OfInteger(1, surface.NbUKnots())
+    surface.UMultiplicities(u_mults)
 
     # Get V multiplicities
-    v_mult_array = TColStd_Array1OfInteger(1, surface.NbVKnots())
-    for i in range(1, surface.NbVKnots() + 1):
-        v_mult_array.SetValue(i, surface.VMultiplicity(i))
+    v_mults = TColStd_Array1OfInteger(1, surface.NbVKnots())
+    surface.VMultiplicities(v_mults)
 
     # Create new surface
     new_surface = Geom_BSplineSurface(
         poles,
         weights,
-        u_knot_array,
-        v_knot_array,
-        u_mult_array,
-        v_mult_array,
+        u_knots,
+        v_knots,
+        u_mults,
+        v_mults,
         surface.UDegree(),
         surface.VDegree(),
         surface.IsUPeriodic(),
