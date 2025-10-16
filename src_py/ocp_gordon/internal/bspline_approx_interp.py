@@ -78,20 +78,29 @@ class BSplineApproxInterp:
         if points.Length() == 0:
             return 0.0
 
-        min_p = gp_Pnt(float("inf"), float("inf"), float("inf"))
-        max_p = gp_Pnt(float("-inf"), float("-inf"), float("-inf"))
-
+        np_array = np.zeros((points.Length(), 3))
         for i in range(points.Lower(), points.Upper() + 1):
             p = points(i)
-            min_p.SetX(min(min_p.X(), p.X()))
-            min_p.SetY(min(min_p.Y(), p.Y()))
-            min_p.SetZ(min(min_p.Z(), p.Z()))
+            np_array[i - points.Lower()] = [p.X(), p.Y(), p.Z()]
+        low = np.min(np_array, axis=0)
+        high = np.max(np_array, axis=0)
+        delta = high - low
+        return math.sqrt(np.dot(delta, delta))
 
-            max_p.SetX(max(max_p.X(), p.X()))
-            max_p.SetY(max(max_p.Y(), p.Y()))
-            max_p.SetZ(max(max_p.Z(), p.Z()))
+        # min_p = gp_Pnt(float("inf"), float("inf"), float("inf"))
+        # max_p = gp_Pnt(float("-inf"), float("-inf"), float("-inf"))
 
-        return max_p.Distance(min_p)
+        # for i in range(points.Lower(), points.Upper() + 1):
+        #     p = points(i)
+        #     min_p.SetX(min(min_p.X(), p.X()))
+        #     min_p.SetY(min(min_p.Y(), p.Y()))
+        #     min_p.SetZ(min(min_p.Z(), p.Z()))
+
+        #     max_p.SetX(max(max_p.X(), p.X()))
+        #     max_p.SetY(max(max_p.Y(), p.Y()))
+        #     max_p.SetZ(max(max_p.Z(), p.Z()))
+
+        # return max_p.Distance(min_p)
 
     def is_closed(self) -> bool:
         if not self.m_c2_continuous:

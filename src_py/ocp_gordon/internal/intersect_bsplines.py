@@ -51,10 +51,11 @@ class BoundingBox:
             self.range = Intervall(curve.FirstParameter(), curve.LastParameter())
             np_array = np.zeros((curve.NbPoles(), 3), dtype=np.float64)
             for i in range(1, curve.NbPoles() + 1):
+                p = curve.Pole(i)
                 np_array[i - 1] = [
-                    curve.Pole(i).X(),
-                    curve.Pole(i).Y(),
-                    curve.Pole(i).Z(),
+                    p.X(),
+                    p.Y(),
+                    p.Z(),
                 ]
             temp = np.min(np_array, axis=0)
             self.low = gp_Pnt(temp[0], temp[1], temp[2])
