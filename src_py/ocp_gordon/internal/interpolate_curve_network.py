@@ -334,6 +334,19 @@ class InterpolateCurveNetwork:
         self.profiles = BSplineAlgorithms.to_bsplines(sorter._profiles)
         self.guides = BSplineAlgorithms.to_bsplines(sorter._guides)
 
+        # ensure zero-length curve only occurs at beginning and end
+        for i in range(1, len(self.profiles) - 1):
+            if _is_zero_length_curve(self.profiles[i]):
+                raise InvalidInputError(
+                    f"Profile#{i} is a point. Points are only permitted at the beginning and end."
+                )
+
+        for i in range(1, len(self.guides) - 1):
+            if _is_zero_length_curve(self.guides[i]):
+                raise InvalidInputError(
+                    f"Guides#{i} is a point. Points are only permitted at the beginning and end."
+                )
+
         # Correcting attribute access based on C++ naming convention (snake_case)
         # The CurveNetworkSorter class exposes intersection parameters as attributes
         sorted_intersection_params_u = sorter._parms_inters_profiles

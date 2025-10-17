@@ -344,6 +344,8 @@ def is_point_on_line_segment(
 
     # t = (AP . AB) / |AB|^2
     line_length = vec_segment.Magnitude()
+    if line_length < 1e-9:
+        return 0, vec_point_from_start.SquareMagnitude() < 1e-9
     t = vec_point_from_start.Dot(vec_segment) / (line_length * line_length)
 
     possible_intersect = True

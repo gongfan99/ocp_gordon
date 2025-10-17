@@ -548,6 +548,20 @@ class TestIntersectBSplines:
         assert is_on_segment is True
         assert abs(t - 0.5) < 1e-7
 
+        # Case 8: Point not on line which is also a point
+        point_not_on_linear = gp_Pnt(5, 1, 0)
+        t, is_on_segment = is_point_on_line_segment(
+            point_not_on_linear, p_start, p_start
+        )
+        assert is_on_segment is False
+
+        # Case 9: Point on line which is also a point
+        point_not_on_linear = gp_Pnt(5, 0, 0)
+        t, is_on_segment = is_point_on_line_segment(
+            point_not_on_linear, p_start, p_start
+        )
+        assert is_on_segment is False
+
 
 if __name__ == "__main__":
     if 0:

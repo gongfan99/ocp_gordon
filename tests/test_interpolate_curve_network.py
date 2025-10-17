@@ -7,6 +7,7 @@ import pytest
 
 # Import actual OCP dependencies
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface, Geom_Curve
+from OCP.GeomAbs import GeomAbs_Shape
 from OCP.GeomAPI import GeomAPI_Interpolate, GeomAPI_PointsToBSpline
 from OCP.gp import gp_Pnt
 from OCP.Precision import Precision
@@ -37,7 +38,7 @@ from src_py.ocp_gordon.internal.misc import (
 )
 
 
-def create_bspline_curve(points: list[gp_Pnt]):
+def create_bspline_curve(points: list[gp_Pnt], interpolate=True):
     """
     Create a B-spline curve from a list of points using GeomAPI_Interpolate.
 
@@ -48,15 +49,28 @@ def create_bspline_curve(points: list[gp_Pnt]):
         Handle(Geom_BSplineCurve): interpolated B-spline curve
     """
     # Create a regular array
-    n_points = len(points)
-    array = TColgp_HArray1OfPnt(1, n_points)
+    if interpolate:
+        n_points = len(points)
+        array = TColgp_HArray1OfPnt(1, n_points)
 
-    for i, point in enumerate(points, 1):
-        array.SetValue(i, point)
+        for i, point in enumerate(points, 1):
+            array.SetValue(i, point)
 
-    Interpolator = GeomAPI_Interpolate(array, False, 1e-9)
-    Interpolator.Perform()
-    return Interpolator.Curve()
+        Interpolator = GeomAPI_Interpolate(array, False, 1e-9)
+        Interpolator.Perform()
+        return Interpolator.Curve()
+    else:
+        n_points = len(points)
+        array = TColgp_Array1OfPnt(1, n_points)
+
+        for i, point in enumerate(points, 1):
+            array.SetValue(i, point)
+
+        # Create approximator with tight tolerance to ensure curve passes through points
+        approximator = GeomAPI_PointsToBSpline(
+            array, 3, 8, GeomAbs_Shape.GeomAbs_C2, 1e-9
+        )
+        return approximator.Curve()
 
 
 # Helper function to create a simple B-spline curve
@@ -249,6 +263,49 @@ class TestInterpolateCurveNetwork:
         guides.append(
             create_bspline_curve([gp_Pnt(4.0, 1.0, 0.0), profile2.Value(0.5)])
         )
+        surface = interpolate_curve_network(
+            list(profiles), list(guides), tolerance=1e-6
+        )
+        assert isinstance(surface, Geom_BSplineSurface)
+
+    def test_interpolate_curve_network_function_single_point(self):
+        single_point = gp_Pnt(0.5, 0.5, 0)
+
+        profiles = [
+            self.u_curve1,
+            create_bspline_curve_from_poles([single_point, single_point], degree=1),
+            self.u_curve2,
+        ]
+        guides = [
+            create_bspline_curve(
+                [self.u_curve1.StartPoint(), single_point, self.u_curve2.StartPoint()]
+            ),
+            create_bspline_curve(
+                [self.u_curve1.EndPoint(), single_point, self.u_curve2.EndPoint()]
+            ),
+        ]
+
+        with pytest.raises(InvalidInputError):
+            surface = interpolate_curve_network(
+                list(profiles), list(guides), tolerance=1e-6
+            )
+
+        single_point = gp_Pnt(0.5, 0.5, 0)
+
+        profiles = [
+            create_bspline_curve_from_poles([single_point, single_point], degree=1),
+            self.u_curve1,
+            self.u_curve2,
+        ]
+        guides = [
+            create_bspline_curve(
+                [single_point, self.u_curve1.StartPoint(), self.u_curve2.StartPoint()]
+            ),
+            create_bspline_curve(
+                [single_point, self.u_curve1.EndPoint(), self.u_curve2.EndPoint()]
+            ),
+        ]
+
         surface = interpolate_curve_network(
             list(profiles), list(guides), tolerance=1e-6
         )
