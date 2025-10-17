@@ -337,13 +337,13 @@ class InterpolateCurveNetwork:
         # ensure zero-length curve only occurs at beginning and end
         for i in range(1, len(self.profiles) - 1):
             if _is_zero_length_curve(self.profiles[i]):
-                raise InvalidInputError(
+                raise ValueError(
                     f"Profile#{i} is a point. Points are only permitted at the beginning and end."
                 )
 
         for i in range(1, len(self.guides) - 1):
             if _is_zero_length_curve(self.guides[i]):
-                raise InvalidInputError(
+                raise ValueError(
                     f"Guides#{i} is a point. Points are only permitted at the beginning and end."
                 )
 

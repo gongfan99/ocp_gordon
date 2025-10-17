@@ -285,7 +285,7 @@ class TestInterpolateCurveNetwork:
             ),
         ]
 
-        with pytest.raises(InvalidInputError):
+        with pytest.raises(ValueError):
             surface = interpolate_curve_network(
                 list(profiles), list(guides), tolerance=1e-6
             )
