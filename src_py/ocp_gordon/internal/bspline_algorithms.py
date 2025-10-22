@@ -9,14 +9,16 @@ other B-spline operations.
 import bisect  # Import bisect for efficient insertion
 import enum  # Import enum module
 import math
-from typing import List, Tuple, Union
+from typing import Union
 
 import numpy as np
+from OCP.BSplCLib import BSplCLib
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface, Geom_Curve
 from OCP.Geom2dAPI import Geom2dAPI_Interpolate, Geom2dAPI_ProjectPointOnCurve
 from OCP.GeomAbs import GeomAbs_C2
 from OCP.GeomConvert import GeomConvert
 from OCP.gp import gp_Pnt, gp_Pnt2d
+from OCP.math import math_Matrix
 from OCP.TColgp import (
     TColgp_Array1OfPnt,
     TColgp_Array2OfPnt,
@@ -628,11 +630,13 @@ class BSplineAlgorithms:
         """
 
         # Helper for IsInsideTolerance
-        def _is_inside_tolerance(value, target, tolerance):
+        def _is_inside_tolerance(value: float, target: float, tolerance: float):
             return abs(value - target) < tolerance
 
         # Helper for finding index with tolerance
-        def _find_index_with_tolerance(data_list, target, tolerance):
+        def _find_index_with_tolerance(
+            data_list: list[float], target: float, tolerance: float
+        ):
             for i, val in enumerate(data_list):
                 if abs(val - target) < tolerance:
                     return i
@@ -662,13 +666,9 @@ class BSplineAlgorithms:
         if not interpolationObject.IsDone():
             raise error("Cannot reparametrize", ErrorCode.MATH_ERROR)
 
-        reparametrizing_spline = (
-            interpolationObject.Curve()
-        )  # This returns Geom2d_BSplineCurve
+        reparametrizing_spline = interpolationObject.Curve()
 
-        breaks = []
-        for ipar in range(1, len(new_parameters) - 1):
-            breaks.append(new_parameters[ipar])
+        breaks = [new_parameters[ipar] for ipar in range(1, len(new_parameters) - 1)]
 
         par_tol = 1e-10
 
@@ -911,85 +911,32 @@ class BSplineAlgorithms:
         Returns:
             Basis matrix as numpy array
         """
-        # This is a simplified implementation - in C++ this uses BSplCLib
-        # For now, we'll implement a basic version
         n_cp = knots.Length() - degree - 1
         n_params = params.Length()
 
         # Create numpy matrix
         basis_mat = np.zeros((n_params, n_cp))
+        bspl_basis = math_Matrix(1, deriv_order + 1, 1, degree + 1)
 
         # For each parameter, compute basis functions
         for i_param in range(1, n_params + 1):
             param_val = params(i_param)
 
             # Find span index
-            span_idx = BSplineAlgorithms._find_span(knots, param_val, degree)
-
-            # Compute basis functions
-            basis_functions = BSplineAlgorithms._basis_functions(
-                knots, span_idx, param_val, degree
+            span_idx, _ = BSplCLib.LocateParameter_s(
+                degree, knots, param_val, False, degree + 1, knots.Length() - degree
             )
-
-            # Fill matrix row
+            BSplCLib.EvalBsplineBasis_s(
+                deriv_order, degree + 1, knots, param_val, int(), bspl_basis
+            )
             for j in range(degree + 1):
-                # The control points involved are P_{span_idx - degree - 1} to P_{span_idx - 1} (0-indexed)
                 col_idx = span_idx - degree - 1 + j
                 if 0 <= col_idx < n_cp:  # Ensure index is within bounds
-                    basis_mat[i_param - 1, col_idx] = basis_functions[j]
+                    basis_mat[i_param - 1, col_idx] = bspl_basis.Value(
+                        deriv_order + 1, j + 1
+                    )
 
         return basis_mat
-
-    @staticmethod
-    def _find_span(knots: TColStd_Array1OfReal, param: float, degree: int) -> int:
-        """
-        Find the span index for a given parameter (1-indexed).
-        Algorithm A2.1 from The NURBS Book.
-        """
-        n_cp = knots.Length() - degree - 1  # Number of control points (0-indexed count)
-
-        # Special case for parameter at end
-        # If param is the last knot, the span index is n_cp (1-indexed)
-        if param >= knots(n_cp + 1):  # knots(n_cp + 1) is the last knot value
-            return n_cp  # This is the 1-indexed span index
-
-        # Binary search for span index k such that knots(k) <= param < knots(k+1)
-        # The span index k ranges from degree to n_cp (1-indexed)
-        low = degree  # 1-indexed
-        high = n_cp + 1  # 1-indexed
-
-        while high - low > 1:
-            mid = (low + high) // 2
-            if param < knots(mid):
-                high = mid
-            else:
-                low = mid
-        return low
-
-    @staticmethod
-    def _basis_functions(
-        knots: TColStd_Array1OfReal, span_idx: int, param: float, degree: int
-    ) -> list[float]:
-        """Compute B-spline basis functions for a given span."""
-        left = [0.0] * (degree + 1)
-        right = [0.0] * (degree + 1)
-        N = [0.0] * (degree + 1)
-
-        N[0] = 1.0
-
-        for j in range(1, degree + 1):
-            left[j] = param - knots(span_idx + 1 - j)
-            right[j] = knots(span_idx + j) - param
-            saved = 0.0
-
-            for r in range(j):
-                temp = N[r] / (right[r + 1] + left[j - r])
-                N[r] = saved + right[r + 1] * temp
-                saved = left[j - r] * temp
-
-            N[j] = saved
-
-        return N
 
     @staticmethod
     def max_distance_of_bounding_box(points: TColgp_Array1OfPnt) -> float:
@@ -1003,8 +950,8 @@ class BSplineAlgorithms:
             Maximum distance
         """
         max_distance = 0.0
-        for i in range(points.Lower(), points.Upper() + 1):
-            for j in range(points.Lower(), points.Upper() + 1):
+        for i in range(points.Lower(), points.Upper()):
+            for j in range(i + 1, points.Upper() + 1):
                 dist = points(i).Distance(points(j))
                 max_distance = max(max_distance, dist)
         return max_distance

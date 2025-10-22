@@ -244,23 +244,67 @@ class BSplineApproxInterp:
     def _project_on_curve(
         self, pnt: gp_Pnt, curve: Geom_Curve, initial_param: float
     ) -> ProjectResult:
-        max_iter = 10
-        eps = 1.0e-6
+        max_iter = 10  # maximum No of iterations
+        eps = 1.0e-6  # accuracy of arc length parameter
 
-        t = initial_param
+        t_new = initial_param
+        t = t_new
 
-        # Use GeomAPI_ProjectPointOnCurve for robust projection
-        projector = GeomAPI_ProjectPointOnCurve(pnt, curve)
+        current_point = gp_Pnt()
+        tangent_vec = gp_Vec()
+        second_deriv_vec = gp_Vec()
+        diff = gp_Vec()
 
-        if projector.NbPoints() > 0:
-            # Get the parameter of the closest point
-            t = projector.LowerDistanceParameter()
-            # Calculate the error (distance)
-            error_val = pnt.Distance(projector.Point(1))
-            return ProjectResult(t, error_val)
-        else:
-            # Fallback if projection fails, return initial parameter with large error
-            return ProjectResult(initial_param, float("inf"))
+        for i in range(max_iter):
+            t = t_new
+            curve.D2(t, current_point, tangent_vec, second_deriv_vec)
+
+            diff = gp_Vec(pnt, current_point)
+
+            # f = diff.SquareMagnitude() / 2
+
+            # C++: df = (p.XYZ() - pnt.XYZ()).Dot(dp.XYZ());
+            df = diff.Dot(tangent_vec)
+
+            # C++: d2f = (p.XYZ() - pnt.XYZ()).Dot(d2p.XYZ()) + dp.SquareMagnitude();
+            d2f = diff.Dot(second_deriv_vec) + tangent_vec.SquareMagnitude()
+
+            # Newton iterate
+            # Avoid division by zero or very small numbers for d2f
+            if abs(d2f) < 1e-12:
+                break
+
+            dt = -df / d2f
+
+            # Check for convergence based on the step size dt
+            if abs(dt) < eps:
+                break
+
+            t_new = t + dt
+
+            # stop searching if parameter out of range
+            if t_new < curve.FirstParameter() or t_new > curve.LastParameter():
+                break
+
+        return ProjectResult(t, diff.Magnitude())
+
+        # max_iter = 10
+        # eps = 1.0e-6
+
+        # t = initial_param
+
+        # # Use GeomAPI_ProjectPointOnCurve for robust projection
+        # projector = GeomAPI_ProjectPointOnCurve(pnt, curve)
+
+        # if projector.NbPoints() > 0:
+        #     # Get the parameter of the closest point
+        #     t = projector.LowerDistanceParameter()
+        #     # Calculate the error (distance)
+        #     error_val = pnt.Distance(projector.Point(1))
+        #     return ProjectResult(t, error_val)
+        # else:
+        #     # Fallback if projection fails, return initial parameter with large error
+        #     return ProjectResult(initial_param, float("inf"))
 
     def _get_continuity_matrix(
         self,

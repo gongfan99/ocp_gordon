@@ -1,5 +1,5 @@
+import functools
 import math
-import sys
 from typing import Any, Callable, TypedDict
 
 import numpy as np
@@ -44,23 +44,29 @@ class Intervall:
         return abs(self.min - other.min) < EPS and abs(self.max - other.max) < EPS
 
 
+@functools.lru_cache(maxsize=1024)
+def _get_low_high_from_bspline(curve: Geom_BSplineCurve):
+    np_array = np.zeros((curve.NbPoles(), 3), dtype=np.float64)
+    for i in range(1, curve.NbPoles() + 1):
+        p = curve.Pole(i)
+        np_array[i - 1] = [
+            p.X(),
+            p.Y(),
+            p.Z(),
+        ]
+    temp = np.min(np_array, axis=0)
+    low = gp_Pnt(temp[0], temp[1], temp[2])
+    temp = np.max(np_array, axis=0)
+    high = gp_Pnt(temp[0], temp[1], temp[2])
+    return low, high
+
+
 class BoundingBox:
     def __init__(self, curve_or_other: "Geom_BSplineCurve | BoundingBox"):
         if isinstance(curve_or_other, Geom_BSplineCurve):
             curve = curve_or_other
             self.range = Intervall(curve.FirstParameter(), curve.LastParameter())
-            np_array = np.zeros((curve.NbPoles(), 3), dtype=np.float64)
-            for i in range(1, curve.NbPoles() + 1):
-                p = curve.Pole(i)
-                np_array[i - 1] = [
-                    p.X(),
-                    p.Y(),
-                    p.Z(),
-                ]
-            temp = np.min(np_array, axis=0)
-            self.low = gp_Pnt(temp[0], temp[1], temp[2])
-            temp = np.max(np_array, axis=0)
-            self.high = gp_Pnt(temp[0], temp[1], temp[2])
+            self.low, self.high = _get_low_high_from_bspline(curve)
         else:
             other = curve_or_other
             self.range = Intervall(other.range.min, other.range.max)
