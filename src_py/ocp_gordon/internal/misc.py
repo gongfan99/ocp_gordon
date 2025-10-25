@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from typing import List
 
 import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface

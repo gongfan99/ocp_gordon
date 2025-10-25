@@ -5,18 +5,15 @@ This module implements the Gordon surface construction algorithm
 that combines skinning surfaces and tensor product surfaces.
 """
 
-import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
-from OCP.TColgp import TColgp_Array2OfPnt
-from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger
 from OCP.gp import gp_Pnt, gp_XYZ
-from typing import List, Union, Tuple
+from OCP.TColgp import TColgp_Array2OfPnt
+from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 
-from .curves_to_surface import CurvesToSurface
 from .bspline_algorithms import BSplineAlgorithms, SurfaceDirection
+from .curves_to_surface import CurvesToSurface
+from .error import ErrorCode, error
 from .misc import clone_bspline_surface, save_bsplines_to_object
-from .error import error, ErrorCode
-
 from .points_to_bspline_interpolation import PointsToBSplineInterpolation
 
 
@@ -146,68 +143,51 @@ class GordonSurfaceBuilder:
 
         if direction == SurfaceDirection.u or direction == SurfaceDirection.both:
             # Collect all unique U-knots and their maximum multiplicities
-            all_u_knots = set()
+            all_knots = set()
             for surf in result_surfaces:
                 for i in range(1, surf.NbUKnots() + 1):
-                    all_u_knots.add(surf.UKnot(i))
+                    all_knots.add(surf.UKnot(i))
 
-            sorted_u_knots = sorted(list(all_u_knots))
+            sorted_knots = sorted(list(all_knots))
 
-            common_u_knots_with_mult = []
-            for knot in sorted_u_knots:
+            common_knots = TColStd_Array1OfReal(1, len(sorted_knots))
+            common_mults = TColStd_Array1OfInteger(1, len(sorted_knots))
+            for idx, knot in enumerate(sorted_knots, 1):
                 max_mult = 0
                 for surf in result_surfaces:
                     for i in range(1, surf.NbUKnots() + 1):
                         if abs(surf.UKnot(i) - knot) < tol:
-                            current_mult = surf.UMultiplicity(i)
-                            max_mult = max(max_mult, current_mult)
+                            max_mult = max(max_mult, surf.UMultiplicity(i))
                             break  # Found the knot, move to next surface
-                common_u_knots_with_mult.append((knot, max_mult))
+                common_knots.SetValue(idx, knot)
+                common_mults.SetValue(idx, max_mult)
 
-            # Insert common U-knots into all surfaces
             for surf in result_surfaces:
-                for knot, mult in common_u_knots_with_mult:
-                    # Check if knot needs to be inserted or multiplicity increased
-                    current_mult = 0
-                    for i in range(1, surf.NbUKnots() + 1):
-                        if abs(surf.UKnot(i) - knot) < tol:
-                            current_mult = surf.UMultiplicity(i)
-                            break
-
-                    if current_mult < mult:
-                        surf.InsertUKnot(knot, mult - current_mult, tol, False)
+                surf.InsertUKnots(common_knots, common_mults, tol, Add=False)
 
         if direction == SurfaceDirection.v or direction == SurfaceDirection.both:
             # Collect all unique V-knots and their maximum multiplicities
-            all_v_knots = set()
+            all_knots = set()
             for surf in result_surfaces:
                 for i in range(1, surf.NbVKnots() + 1):
-                    all_v_knots.add(surf.VKnot(i))
+                    all_knots.add(surf.VKnot(i))
 
-            sorted_v_knots = sorted(list(all_v_knots))
+            sorted_knots = sorted(list(all_knots))
 
-            common_v_knots_with_mult = []
-            for knot in sorted_v_knots:
+            common_knots = TColStd_Array1OfReal(1, len(sorted_knots))
+            common_mults = TColStd_Array1OfInteger(1, len(sorted_knots))
+            for idx, knot in enumerate(sorted_knots, 1):
                 max_mult = 0
                 for surf in result_surfaces:
                     for i in range(1, surf.NbVKnots() + 1):
                         if abs(surf.VKnot(i) - knot) < tol:
-                            current_mult = surf.VMultiplicity(i)
-                            max_mult = max(max_mult, current_mult)
+                            max_mult = max(max_mult, surf.VMultiplicity(i))
                             break  # Found the knot, move to next surface
-                common_v_knots_with_mult.append((knot, max_mult))
+                common_knots.SetValue(idx, knot)
+                common_mults.SetValue(idx, max_mult)
 
-            # Insert common V-knots into all surfaces
             for surf in result_surfaces:
-                for knot, mult in common_v_knots_with_mult:
-                    current_mult = 0
-                    for i in range(1, surf.NbVKnots() + 1):
-                        if abs(surf.VKnot(i) - knot) < tol:
-                            current_mult = surf.VMultiplicity(i)
-                            break
-
-                    if current_mult < mult:
-                        surf.InsertVKnot(knot, mult - current_mult, tol, False)
+                surf.InsertVKnots(common_knots, common_mults, tol, Add=False)
 
         return result_surfaces
 

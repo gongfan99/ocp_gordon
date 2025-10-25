@@ -114,9 +114,7 @@ class CurvesToSurface:
         self._skinned_surface = None
 
         self._input_curves: list[Geom_BSplineCurve] = []
-        self._compatible_splines: list[Geom_BSplineCurve] = (
-            []
-        )  # Initialize _compatible_splines here
+        self._compatible_splines: list[Geom_BSplineCurve] = []
 
         # Convert all curves to bspline curves and store them
         for curve in self._input_curves_raw:

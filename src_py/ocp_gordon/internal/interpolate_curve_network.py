@@ -204,8 +204,6 @@ class InterpolateCurveNetwork:
         self.skinning_surf_guides = builder.surface_guides()
         self.tensor_prod_surf = builder.surface_intersections()
 
-        # assert self.gordon_surf.Value(1, 0).IsEqual(self.profiles[0].Value(1.0), 1e-4)
-
         self._ensure_c2()  # Ensure C2 continuity
 
         self.has_performed = True
@@ -552,6 +550,23 @@ class InterpolateCurveNetwork:
         final_max_cp_v = self._clamp(max_cp_v_orig + 10, min_v, max_v)
 
         # 8. Reparametrize profiles and guides again using new parameters and control points
+        def skip_reparametrize(
+            curve: Geom_BSplineCurve,
+            old_parameters: list[float],
+            new_parameters: list[float],
+        ):
+            return (
+                (not curve.IsRational())
+                and (not curve.IsPeriodic())
+                and all(
+                    [
+                        abs(old_parameters[i] - new_parameters[i])
+                        < Precision.PConfusion_s()
+                        for i in range(len(old_parameters))
+                    ]
+                )
+            )
+
         # Reparametrize profiles
         for i in range(current_n_profiles):
             if isinstance(
@@ -562,6 +577,11 @@ class InterpolateCurveNetwork:
             old_parameters = [
                 final_intersection_params_u[i, j] for j in range(current_n_guides)
             ]
+
+            if skip_reparametrize(
+                self.profiles[i], old_parameters, new_parameters_profiles
+            ):
+                continue
 
             # Eliminate small inaccuracies at the first and last knots
             if abs(old_parameters[0]) < BSplineAlgorithms.PAR_CHECK_TOL:
@@ -593,6 +613,11 @@ class InterpolateCurveNetwork:
             old_parameters = [
                 final_intersection_params_v[i, j] for i in range(current_n_profiles)
             ]
+
+            if skip_reparametrize(
+                self.guides[j], old_parameters, new_parameters_guides
+            ):
+                continue
 
             # Eliminate small inaccuracies
             if abs(old_parameters[0]) < BSplineAlgorithms.PAR_CHECK_TOL:
