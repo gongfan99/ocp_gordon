@@ -9,16 +9,22 @@ other B-spline operations.
 import bisect  # Import bisect for efficient insertion
 import enum  # Import enum module
 import math
-from typing import Union
 
 import numpy as np
 from OCP.BSplCLib import BSplCLib
-from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface, Geom_Curve
+from OCP.Geom import (
+    Geom_BSplineCurve,
+    Geom_BSplineSurface,
+    Geom_Conic,
+    Geom_Curve,
+    Geom_TrimmedCurve,
+)
 from OCP.Geom2dAPI import Geom2dAPI_Interpolate, Geom2dAPI_ProjectPointOnCurve
-from OCP.GeomAbs import GeomAbs_C2
-from OCP.GeomConvert import GeomConvert
+from OCP.GeomAbs import GeomAbs_C1, GeomAbs_C2
+from OCP.GeomConvert import GeomConvert, GeomConvert_ApproxCurve
 from OCP.gp import gp_Pnt, gp_Pnt2d
 from OCP.math import math_Matrix
+from OCP.Precision import Precision
 from OCP.TColgp import (
     TColgp_Array1OfPnt,
     TColgp_Array2OfPnt,
@@ -35,7 +41,7 @@ from OCP.TColStd import (
 from .approx_result import ApproxResult
 from .error import ErrorCode, error  # Import ErrorCode
 from .intersect_bsplines import IntersectBSplines
-from .misc import clone_bspline, clone_bspline_surface, save_bsplines_to_object
+from .misc import clone_bspline, clone_bspline_surface, save_bsplines_to_file
 
 
 # Define SurfaceDirection enum
@@ -371,30 +377,9 @@ class BSplineAlgorithms:
             umax: New maximum parameter
             tol: Tolerance for parameter comparison
         """
-        current_umin = spline.FirstParameter()
-        current_umax = spline.LastParameter()
-
-        if abs(current_umin - umin) < tol and abs(current_umax - umax) < tol:
-            return
-
-        # Linear transformation: u_new = a * u_old + b
-        a = (umax - umin) / (current_umax - current_umin)
-        b = umin - a * current_umin
-
-        # Get current knots
-        knots = BSplineAlgorithms._get_knots(spline)
-
-        # Transform knots
-        new_knots = [a * knot + b for knot in knots]
-
-        # Create TColStd_Array1OfReal with transformed knots
-        n_knots = len(new_knots)
-        knots_array = TColStd_Array1OfReal(1, n_knots)
-        for i, knot in enumerate(new_knots, 1):
-            knots_array.SetValue(i, knot)
-
-        # Apply new knots to the spline
-        spline.SetKnots(knots_array)
+        knots = spline.Knots()
+        BSplCLib.Reparametrize_s(umin, umax, knots)
+        spline.SetKnots(knots)
 
     @staticmethod
     def to_bsplines(curves: list[Geom_Curve]) -> list[Geom_BSplineCurve]:
@@ -802,7 +787,42 @@ class BSplineAlgorithms:
         Returns:
             B-spline curve
         """
-        # Convert using OCP GeomConvert utility
+
+        def is_conic(curve: Geom_Curve):
+            if curve.IsKind("Geom_Conic"):
+                return True
+            if curve.IsKind("Geom_TrimmedCurve"):
+                assert isinstance(curve, Geom_TrimmedCurve)
+                basis_curve = curve.BasisCurve()
+                if basis_curve.IsKind("Geom_Conic"):
+                    return True
+            return False
+
+        if is_conic(curve):
+            """
+            for a full circle or ellipse (size=200), the generated bspline will have
+            99 poles, 33 knots, 5 degree and the error is 1.3e-7
+            for trimmed circle or ellipse, the number of poles will be less.
+            """
+            curve_size = 0.0
+            curve_start_pnt = curve.Value(curve.FirstParameter())
+            for i in range(1, 3):
+                u = (1 - i / 4) * curve.FirstParameter() + (
+                    i / 4
+                ) * curve.LastParameter()
+                curve_size = max(curve_size, curve_start_pnt.Distance(curve.Value(u)))
+
+            tol = Precision.Approximation_s() * curve_size / 200
+            approx = GeomConvert_ApproxCurve(
+                curve,
+                tol,
+                GeomAbs_C2,
+                MaxSegments=64,
+                MaxDegree=5,
+            )
+            if approx.HasResult() and approx.MaxError() < tol:
+                bspline = approx.Curve()
+                return bspline
         return GeomConvert.CurveToBSplineCurve_s(curve)
 
     @staticmethod
@@ -1229,10 +1249,7 @@ class BSplineAlgorithms:
     @staticmethod
     def have_same_range(
         splines_vector: list[
-            Union[
-                "BSplineAlgorithms.SurfAdapterView",
-                "BSplineAlgorithms.CurveAdapterView",
-            ]
+            "BSplineAlgorithms.SurfAdapterView | BSplineAlgorithms.CurveAdapterView",
         ],
         par_tolerance: float,
     ) -> bool:

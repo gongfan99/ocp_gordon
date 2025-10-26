@@ -5,8 +5,6 @@ This module provides the main interpolate_curve_network function that serves
 as the entry point for the Gordon surface interpolation algorithm.
 """
 
-from typing import List, Optional, Union
-
 import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface, Geom_Curve
 from OCP.Precision import Precision
@@ -16,10 +14,6 @@ from .curve_network_sorter import (
     CurveNetworkSorter,
     _find_first_non_zero_length_index,
     _is_zero_length_curve,
-)
-from .error import (  # Ensure error and ErrorCode are imported for internal use
-    ErrorCode,
-    error,
 )
 from .gordon_surface_builder import GordonSurfaceBuilder
 from .intersect_bsplines import IntersectBSplines
@@ -538,7 +532,7 @@ class InterpolateCurveNetwork:
         max_cp_v_orig = max((guide.NbPoles() for guide in self.guides), default=0)
 
         min_cp = 10
-        max_cp = 80
+        max_cp = 120  # 80
 
         min_u = max(current_n_guides + 2, min_cp)
         min_v = max(current_n_profiles + 2, min_cp)

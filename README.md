@@ -56,6 +56,12 @@ python -m pytest
 - In the `_solve()` function of `bspline_approx_interp.py`, regularization has been added to prevent singular matrix issues, which can occur in cases such as when the input curve is a B-spline derived from a circle.
 - A new file, `misc.py`, has been introduced to implement missing OCP utilities. The primary additions include `clone_bspline` and `math_BFGS`.
 - Modified `curve_network_sorter.py`, `bspline_algorithms.py`, and `interpolate_curve_network.py` to allow a single point to be used as either a profile or a guide.
+- The reparameterization process is now skipped if the input profiles and guides are already iso-parametric, improving accuracy and performance for such cases.
+- In `bspline_algorithms.py`, the `GeomConvert_ApproxCurve()` function is utilized for improved representation of conic curves.
+
+## Caveats
+
+Potential misalignments can occur between the generated Gordon surface and its input curves, especially at boundaries. This is primarily due to the approximation involved in the reparameterization process for non-iso-parametric inputs. For a detailed explanation and mitigation strategies, please refer to the [Gordon Surface Misalignment wiki page](https://github.com/gongfan99/ocp_gordon/wiki/Gordon-Surface-Misalignment).
 
 ## License
 

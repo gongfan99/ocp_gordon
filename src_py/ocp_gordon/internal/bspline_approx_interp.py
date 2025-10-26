@@ -11,17 +11,9 @@ from typing import List, Optional, Tuple
 import numpy as np
 from OCP.BSplCLib import BSplCLib  # For KnotSequence
 from OCP.Geom import Geom_BSplineCurve, Geom_Curve
-from OCP.GeomAPI import (
-    GeomAPI_ProjectPointOnCurve,  # Equivalent to Geom2dAPI_ProjectPointOnCurve for 3D
-)
 from OCP.gp import gp_Pnt, gp_Vec
 from OCP.TColgp import TColgp_Array1OfPnt
-from OCP.TColStd import (
-    TColStd_Array1OfInteger,
-    TColStd_Array1OfReal,
-    TColStd_HArray1OfInteger,
-    TColStd_HArray1OfReal,
-)
+from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 
 from .approx_result import ApproxResult
 from .bspline_algorithms import BSplineAlgorithms  # For bspline_basis_mat, scale, etc.
@@ -86,21 +78,6 @@ class BSplineApproxInterp:
         high = np.max(np_array, axis=0)
         delta = high - low
         return math.sqrt(np.dot(delta, delta))
-
-        # min_p = gp_Pnt(float("inf"), float("inf"), float("inf"))
-        # max_p = gp_Pnt(float("-inf"), float("-inf"), float("-inf"))
-
-        # for i in range(points.Lower(), points.Upper() + 1):
-        #     p = points(i)
-        #     min_p.SetX(min(min_p.X(), p.X()))
-        #     min_p.SetY(min(min_p.Y(), p.Y()))
-        #     min_p.SetZ(min(min_p.Z(), p.Z()))
-
-        #     max_p.SetX(max(max_p.X(), p.X()))
-        #     max_p.SetY(max(max_p.Y(), p.Y()))
-        #     max_p.SetZ(max(max_p.Z(), p.Z()))
-
-        # return max_p.Distance(min_p)
 
     def is_closed(self) -> bool:
         if not self.m_c2_continuous:
@@ -493,21 +470,6 @@ class BSplineApproxInterp:
         for i in range(n_ctr_pnts):
             pnt = gp_Pnt(cp_x_full[i], cp_y_full[i], cp_z_full[i])
             poles.SetValue(i + 1, pnt)
-
-        # Create OCP knot and multiplicity arrays for Geom_BSplineCurve constructor
-        # Need to convert flat_knots_array back to knots and mults for constructor
-        # This is a simplification, as C++ uses the original knots and mults
-        # The C++ BSplCLib::KnotSequence is used to get flat_knots, but the constructor
-        # for Geom_BSplineCurve takes original knots and mults.
-        # For now, we'll use the original knots_list and mults_list from _compute_knots
-        # This might need refinement if the flat_knots are truly different.
-
-        # Reconstruct original knots and mults from flat_knots_array if needed,
-        # but for now, use the ones computed by _compute_knots
-
-        # The Geom_BSplineCurve constructor expects TColStd_Array1OfReal for knots
-        # and TColStd_Array1OfInteger for multiplicities.
-        # The `knots` and `mults` parameters passed to `_solve` are already in this format.
 
         result_curve = Geom_BSplineCurve(poles, knots, mults, self.m_degree, False)
 
