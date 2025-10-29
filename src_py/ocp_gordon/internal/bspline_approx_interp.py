@@ -374,9 +374,7 @@ class BSplineApproxInterp:
         lhs = np.zeros((n_vars, n_vars))
 
         # Allocate right hand side
-        rhs_x = np.zeros(n_vars)
-        rhs_y = np.zeros(n_vars)
-        rhs_z = np.zeros(n_vars)
+        rhs = np.zeros((n_vars, 3))
 
         if n_approximated > 0:
             app_params_list = [params[idx] for idx in self.m_index_of_approximated]
@@ -384,32 +382,23 @@ class BSplineApproxInterp:
             for i, p in enumerate(app_params_list, 1):
                 app_params_array.SetValue(i, p)
 
-            bx = np.zeros(n_approximated)
-            by = np.zeros(n_approximated)
-            bz = np.zeros(n_approximated)
+            b = np.zeros((n_approximated, 3))
 
             for i, idx in enumerate(self.m_index_of_approximated):
                 p = self.m_pnts(self.m_pnts.Lower() + idx)
-                bx[i] = p.X()
-                by[i] = p.Y()
-                bz[i] = p.Z()
+                b[i] = [p.X(), p.Y(), p.Z()]
 
             A = BSplineAlgorithms.bspline_basis_mat(
                 self.m_degree, flat_knots_array, app_params_array
             )
             At = A.T
 
-            # Add regularization to prevent singular matrix
             lhs[:n_ctr_pnts, :n_ctr_pnts] = At @ A
 
-            rhs_x[:n_ctr_pnts] = At @ bx
-            rhs_y[:n_ctr_pnts] = At @ by
-            rhs_z[:n_ctr_pnts] = At @ bz
+            rhs[:n_ctr_pnts] = At @ b
 
         if n_interpolated + n_continuity_conditions > 0:
-            dx = np.zeros(n_interpolated + n_continuity_conditions)
-            dy = np.zeros(n_interpolated + n_continuity_conditions)
-            dz = np.zeros(n_interpolated + n_continuity_conditions)
+            d = np.zeros((n_interpolated + n_continuity_conditions, 3))
 
             if n_interpolated > 0:
                 interp_params_list = [
@@ -421,17 +410,13 @@ class BSplineApproxInterp:
 
                 for i, idx in enumerate(self.m_index_of_interpolated):
                     p = self.m_pnts(self.m_pnts.Lower() + idx)
-                    dx[i] = p.X()
-                    dy[i] = p.Y()
-                    dz[i] = p.Z()
+                    d[i] = [p.X(), p.Y(), p.Z()]
 
                 C = BSplineAlgorithms.bspline_basis_mat(
                     self.m_degree, flat_knots_array, interp_params_array
                 )
 
-                lhs[:n_ctr_pnts, n_ctr_pnts : n_ctr_pnts + n_interpolated] = (
-                    C.T
-                )  # C++ uses Ct, but here C is already (n_interpolated, n_ctr_pnts)
+                lhs[:n_ctr_pnts, n_ctr_pnts : n_ctr_pnts + n_interpolated] = C.T
                 lhs[n_ctr_pnts : n_ctr_pnts + n_interpolated, :n_ctr_pnts] = C
 
             # sets the C2 continuity constraints for closed curves on the left hand side if requested
@@ -446,29 +431,18 @@ class BSplineApproxInterp:
                 lhs[start_row_lhs:end_row_lhs, :n_ctr_pnts] = continuity_entries
                 lhs[:n_ctr_pnts, start_row_lhs:end_row_lhs] = continuity_entries.T
 
-            rhs_x[
-                n_ctr_pnts : n_ctr_pnts + n_interpolated + n_continuity_conditions
-            ] = dx
-            rhs_y[
-                n_ctr_pnts : n_ctr_pnts + n_interpolated + n_continuity_conditions
-            ] = dy
-            rhs_z[
-                n_ctr_pnts : n_ctr_pnts + n_interpolated + n_continuity_conditions
-            ] = dz
+            rhs[n_ctr_pnts : n_ctr_pnts + n_interpolated + n_continuity_conditions] = d
 
-        # Solve linear system
+        # Solve linear system; add regularization to prevent singular matrix
         try:
-            # Add regularization to prevent singular matrix
-            lhs = lhs + 1e-9 * np.eye(lhs.shape[0])
-            cp_x_full = np.linalg.solve(lhs, rhs_x)
-            cp_y_full = np.linalg.solve(lhs, rhs_y)
-            cp_z_full = np.linalg.solve(lhs, rhs_z)
+            lhs = lhs + 1e-15 * np.eye(lhs.shape[0])
+            cp_full = np.linalg.solve(lhs, rhs)
         except np.linalg.LinAlgError:
             raise error("Singular Matrix", ErrorCode.MATH_ERROR)
 
         poles = TColgp_Array1OfPnt(1, n_ctr_pnts)
         for i in range(n_ctr_pnts):
-            pnt = gp_Pnt(cp_x_full[i], cp_y_full[i], cp_z_full[i])
+            pnt = gp_Pnt(cp_full[i][0], cp_full[i][1], cp_full[i][2])
             poles.SetValue(i + 1, pnt)
 
         result_curve = Geom_BSplineCurve(poles, knots, mults, self.m_degree, False)
