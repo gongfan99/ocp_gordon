@@ -4,6 +4,8 @@ This library provides a Python implementation for creating Gordon surfaces, a me
 
 The implementation is written entirely in Python and is adapted from the original C++ code in [occ_gordon](https://github.com/rainman110/occ_gordon)
 
+It is currently used by [`build123d`](https://github.com/gumyr/build123d), but can also be used independently.
+
 ## Features
 
 - Gordon surface interpolation from profile and guide curves.
