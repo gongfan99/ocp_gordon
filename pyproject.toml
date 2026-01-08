@@ -10,7 +10,7 @@ authors = [
 ]
 description = "A Python library for Gordon Surface interpolation using B-splines."
 readme = "README.md"
-requires-python = ">= 3.10, < 3.14"
+requires-python = ">= 3.10, < 3.15"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -18,7 +18,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "cadquery-ocp >= 7.8, < 7.9",
+    "cadquery_ocp_proxy >= 7.9, < 8.0",
     "numpy >= 2, < 3",
     "scipy",
 ]
@@ -42,11 +42,12 @@ issues = "https://github.com/gongfan99/ocp_gordon/issues"
 [project.optional-dependencies]
 test = [
     "pytest",
+    "cadquery_ocp_novtk >=7.9, < 8.0",
 ]
 
 # typing stubs for the OCP CAD kernel
 stubs = [
-    "cadquery-ocp-stubs >= 7.8, < 7.9"
+    "cadquery-ocp-stubs >= 7.9, < 8.0"
 ]
 
 [tool.setuptools.packages.find]
