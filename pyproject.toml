@@ -36,8 +36,9 @@ keywords = [
 license = "Apache-2.0"
 
 [project.urls]
-homepage = "https://github.com/gongfan99/ocp_gordon"
-issues = "https://github.com/gongfan99/ocp_gordon/issues"
+Homepage = "https://github.com/gongfan99/ocp_gordon"
+Issues = "https://github.com/gongfan99/ocp_gordon/issues"
+Used-by = "https://github.com/gumyr/build123d"
 
 [project.optional-dependencies]
 test = [
