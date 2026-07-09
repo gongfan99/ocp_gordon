@@ -6,8 +6,6 @@ using recursive subdivision and optimization methods.
 """
 
 import math
-import os
-import sys
 
 import numpy as np
 import pytest
@@ -18,17 +16,14 @@ from OCP.GeomConvert import GeomConvert
 from OCP.gp import gp_Ax1, gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
 from OCP.TColgp import TColgp_Array1OfPnt
 
-# Add the parent directory to the path to import the module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 # Import the module to test
-from src_py.ocp_gordon.internal.intersect_bsplines import (
+from ocp_gordon.internal.intersect_bsplines import (
     BoundingBox,
     IntersectBSplines,
     is_point_on_line_segment,
     line_line_intersection_3d,
 )
-from src_py.ocp_gordon.internal.misc import (
+from ocp_gordon.internal.misc import (
     clone_bspline,
     load_bsplines_from_object,
     save_bsplines_to_file,

@@ -1,5 +1,3 @@
-import os
-import sys
 from typing import List  # Import List
 
 import numpy as np
@@ -14,15 +12,12 @@ from OCP.Precision import Precision
 from OCP.TColgp import TColgp_Array1OfPnt, TColgp_HArray1OfPnt
 from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 
-# Add the parent directory to the path to import the module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 # Import actual internal dependencies
-from src_py.ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms
-from src_py.ocp_gordon.internal.curve_network_sorter import CurveNetworkSorter
-from src_py.ocp_gordon.internal.error import ErrorCode, error
-from src_py.ocp_gordon.internal.gordon_surface_builder import GordonSurfaceBuilder
-from src_py.ocp_gordon.internal.interpolate_curve_network import (
+from ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms
+from ocp_gordon.internal.curve_network_sorter import CurveNetworkSorter
+from ocp_gordon.internal.error import ErrorCode, error
+from ocp_gordon.internal.gordon_surface_builder import GordonSurfaceBuilder
+from ocp_gordon.internal.interpolate_curve_network import (
     CompatibilityError,
     InterpolateCurveNetwork,
     IntersectionError,
@@ -30,8 +25,8 @@ from src_py.ocp_gordon.internal.interpolate_curve_network import (
     SurfaceConstructionError,
     interpolate_curve_network,
 )
-from src_py.ocp_gordon.internal.intersect_bsplines import IntersectBSplines
-from src_py.ocp_gordon.internal.misc import (
+from ocp_gordon.internal.intersect_bsplines import IntersectBSplines
+from ocp_gordon.internal.misc import (
     concat_two_bsplines,
     load_bsplines_from_object,
     save_bsplines_to_file,

@@ -1,24 +1,21 @@
 import pytest
-import sys
-import os
 import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_Curve
 from OCP.TColgp import TColgp_Array1OfPnt
 from OCP.gp import gp_Pnt
 import math
 
-# Add the parent directory to the path to import the module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from ocp_gordon.internal.bspline_approx_interp import BSplineApproxInterp, ProjectResult
+from ocp_gordon.internal.error import error, ErrorCode
+from ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms
 
-from src_py.ocp_gordon.internal.bspline_approx_interp import BSplineApproxInterp, ProjectResult
-from src_py.ocp_gordon.internal.error import error, ErrorCode
-from src_py.ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms
 
 # Helper for comparing lists of floats
 def assert_list_almost_equal(list1, list2, places=7):
     assert len(list1) == len(list2)
     for i in range(len(list1)):
-        assert math.isclose(list1[i], list2[i], rel_tol=10**(-places))
+        assert math.isclose(list1[i], list2[i], rel_tol=10 ** (-places))
+
 
 @pytest.fixture
 def simple_points_array():
@@ -29,6 +26,7 @@ def simple_points_array():
     points.SetValue(4, gp_Pnt(3, 0, 0))
     return points
 
+
 @pytest.fixture
 def linear_points_array():
     points = TColgp_Array1OfPnt(1, 3)
@@ -37,6 +35,7 @@ def linear_points_array():
     points.SetValue(3, gp_Pnt(2, 0, 0))
     return points
 
+
 @pytest.fixture
 def closed_points_array():
     points = TColgp_Array1OfPnt(1, 5)
@@ -44,8 +43,9 @@ def closed_points_array():
     points.SetValue(2, gp_Pnt(1, 0, 0))
     points.SetValue(3, gp_Pnt(1, 1, 0))
     points.SetValue(4, gp_Pnt(0, 1, 0))
-    points.SetValue(5, gp_Pnt(0, 0, 0)) # Closed loop
+    points.SetValue(5, gp_Pnt(0, 0, 0))  # Closed loop
     return points
+
 
 class TestBSplineApproxInterp:
 
@@ -71,27 +71,36 @@ class TestBSplineApproxInterp:
         assert 2 in interp.m_index_of_kinks
 
         with pytest.raises(error) as excinfo:
-            interp.interpolate_point(1) # Already interpolated
+            interp.interpolate_point(1)  # Already interpolated
         assert excinfo.value.get_code() == ErrorCode.INDEX_ERROR
 
     def test_max_distance_of_bounding_box(self, simple_points_array):
         interp = BSplineApproxInterp(simple_points_array, n_control_points=5, degree=3)
         dist = interp._max_distance_of_bounding_box(simple_points_array)
         # Bounding box from (0,-1,0) to (3,1,0)
-        expected_dist = gp_Pnt(0,-1,0).Distance(gp_Pnt(3,1,0))
+        expected_dist = gp_Pnt(0, -1, 0).Distance(gp_Pnt(3, 1, 0))
         assert math.isclose(dist, expected_dist, rel_tol=1e-6)
 
     def test_is_closed(self, simple_points_array, closed_points_array):
         # Not C2 continuous, so should return False even if points are closed
-        interp_not_c2 = BSplineApproxInterp(closed_points_array, n_control_points=5, degree=3, continuous_if_closed=False)
+        interp_not_c2 = BSplineApproxInterp(
+            closed_points_array,
+            n_control_points=5,
+            degree=3,
+            continuous_if_closed=False,
+        )
         assert not interp_not_c2.is_closed()
 
         # C2 continuous, and points are closed
-        interp_c2 = BSplineApproxInterp(closed_points_array, n_control_points=5, degree=3, continuous_if_closed=True)
+        interp_c2 = BSplineApproxInterp(
+            closed_points_array, n_control_points=5, degree=3, continuous_if_closed=True
+        )
         assert interp_c2.is_closed()
 
         # Not closed points
-        interp_open = BSplineApproxInterp(simple_points_array, n_control_points=5, degree=3, continuous_if_closed=True)
+        interp_open = BSplineApproxInterp(
+            simple_points_array, n_control_points=5, degree=3, continuous_if_closed=True
+        )
         assert not interp_open.is_closed()
 
     def test_first_and_last_interpolated(self, simple_points_array):
@@ -113,7 +122,9 @@ class TestBSplineApproxInterp:
         # Specific values depend on point distances, check for monotonicity
         assert params[0] <= params[1] <= params[2] <= params[3]
 
-        interp_linear = BSplineApproxInterp(linear_points_array, n_control_points=3, degree=1)
+        interp_linear = BSplineApproxInterp(
+            linear_points_array, n_control_points=3, degree=1
+        )
         params_linear = interp_linear._compute_parameters(0.5)
         assert_list_almost_equal(params_linear, [0.0, 0.5, 1.0])
 
@@ -132,10 +143,12 @@ class TestBSplineApproxInterp:
         assert len(knots) == interp.m_ncp - interp.m_degree + 1
 
         # Test with kinks
-        interp_kink = BSplineApproxInterp(simple_points_array, n_control_points=5, degree=3)
-        interp_kink.interpolate_point(1, with_kink=True) # Add a kink at index 1
+        interp_kink = BSplineApproxInterp(
+            simple_points_array, n_control_points=5, degree=3
+        )
+        interp_kink.interpolate_point(1, with_kink=True)  # Add a kink at index 1
         knots_kink, mults_kink = interp_kink._compute_knots(interp_kink.m_ncp, params)
-        
+
         # The number of knots and mults might increase due to kink insertion
         # The sum of multiplicities should still be ncp + degree + 1, but the structure changes
         # The new _insert_knot_with_multiplicity ensures multiplicity is capped at degree
@@ -147,7 +160,9 @@ class TestBSplineApproxInterp:
         found_kink_knot = False
         for i, k in enumerate(knots_kink):
             if math.isclose(k, kink_param, rel_tol=1e-4):
-                assert mults_kink[i] >= interp_kink.m_degree # Multiplicity should be at least degree
+                assert (
+                    mults_kink[i] >= interp_kink.m_degree
+                )  # Multiplicity should be at least degree
                 found_kink_knot = True
                 break
         assert found_kink_knot
@@ -181,15 +196,15 @@ class TestBSplineApproxInterp:
             p_expected = linear_points_array(i + 1)
             # Optimal parameters might be slightly different, but should still interpolate
             # For linear, they should be the same as computed
-            param = interp._compute_parameters(0.5)[i] # Re-compute for comparison
+            param = interp._compute_parameters(0.5)[i]  # Re-compute for comparison
             p_actual = result.curve.Value(param)
             assert p_expected.IsEqual(p_actual, 1e-6)
 
     def test_fit_curve_with_interpolation(self, simple_points_array):
         interp = BSplineApproxInterp(simple_points_array, n_control_points=4, degree=3)
-        interp.interpolate_point(0) # Interpolate first point
-        interp.interpolate_point(3) # Interpolate last point
-        
+        interp.interpolate_point(0)  # Interpolate first point
+        interp.interpolate_point(3)  # Interpolate last point
+
         result = interp.fit_curve()
         assert result.curve is not None
         assert result.error >= 0.0
@@ -206,8 +221,8 @@ class TestBSplineApproxInterp:
 
     def test_fit_curve_with_kinks(self, simple_points_array):
         interp = BSplineApproxInterp(simple_points_array, n_control_points=5, degree=2)
-        interp.interpolate_point(1, with_kink=True) # Kink at index 1
-        
+        interp.interpolate_point(1, with_kink=True)  # Kink at index 1
+
         result = interp.fit_curve()
         assert result.curve is not None
         assert result.error >= 0.0
@@ -215,7 +230,7 @@ class TestBSplineApproxInterp:
         # Check if the kink parameter has high multiplicity in the resulting curve
         params = interp._compute_parameters(0.5)
         kink_param = params[1]
-        
+
         found_kink_mult = False
         for i in range(1, result.curve.NbKnots() + 1):
             if math.isclose(result.curve.Knot(i), kink_param, rel_tol=1e-4):
@@ -230,7 +245,7 @@ class TestBSplineApproxInterp:
         poles.SetValue(1, gp_Pnt(0, 0, 0))
         poles.SetValue(2, gp_Pnt(2, 0, 0))
         knots = BSplineAlgorithms.to_array([0.0, 1.0])
-        mults = BSplineAlgorithms.to_array_int([2, 2]) # Degree 1, clamped
+        mults = BSplineAlgorithms.to_array_int([2, 2])  # Degree 1, clamped
         curve = Geom_BSplineCurve(poles, knots.Array1(), mults.Array1(), 1)
 
         # Test point on the curve
@@ -245,9 +260,14 @@ class TestBSplineApproxInterp:
         pnt_off_curve = gp_Pnt(1, 1, 0)
         initial_param_off = 0.5
         res_off = interp._project_on_curve(pnt_off_curve, curve, initial_param_off)
-        assert math.isclose(res_off.parameter, 0.5, rel_tol=1e-6) # Closest point is at 0.5
-        assert math.isclose(res_off.error, 1.0, rel_tol=1e-6) # Distance to (1,0,0) is 1.0
+        assert math.isclose(
+            res_off.parameter, 0.5, rel_tol=1e-6
+        )  # Closest point is at 0.5
+        assert math.isclose(
+            res_off.error, 1.0, rel_tol=1e-6
+        )  # Distance to (1,0,0) is 1.0
+
 
 if __name__ == "__main__":
     # pytest.main([f'{__file__}::TestBSplineApproxInterp::test_fit_curve_with_kinks', "-v"])
-    pytest.main([f'{__file__}', "-v"])
+    pytest.main([f"{__file__}", "-v"])

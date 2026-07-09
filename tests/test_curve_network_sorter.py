@@ -1,5 +1,3 @@
-import os
-import sys
 from typing import List, Tuple
 
 import numpy as np
@@ -9,12 +7,9 @@ from OCP.gp import gp_Pnt
 from OCP.TColgp import TColgp_Array1OfPnt
 from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 
-# Add the parent directory to the path to import the module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 # Import the CurveNetworkSorter from the internal module
-from src_py.ocp_gordon.internal.curve_network_sorter import CurveNetworkSorter
-from src_py.ocp_gordon.internal.error import error
+from ocp_gordon.internal.curve_network_sorter import CurveNetworkSorter
+from ocp_gordon.internal.error import error
 
 
 def create_linear_bspline_curve(
