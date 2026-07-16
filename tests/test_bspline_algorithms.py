@@ -1,6 +1,4 @@
 import math
-import os
-import sys
 
 import numpy as np
 import pytest
@@ -18,14 +16,11 @@ from OCP.Precision import Precision
 from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt, TColgp_HArray1OfPnt
 from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
 
-# Add the parent directory to the path to import the module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from src_py.ocp_gordon.internal.bspline_algorithms import (
+from ocp_gordon.internal.bspline_algorithms import (
     BSplineAlgorithms,
     SurfaceDirection,
 )
-from src_py.ocp_gordon.internal.misc import clone_bspline
+from ocp_gordon.internal.misc import clone_bspline
 
 
 # Helper for comparing lists of floats
