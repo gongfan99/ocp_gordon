@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 import math
 
-from OCP.gp import gp_Pnt, gp_Vec, gp_XYZ
+from OCP.gp import gp_Pnt, gp_Vec
 from OCP.Geom import Geom_Curve, Geom_BSplineCurve
-from OCP.TColgp import TColgp_Array1OfPnt
+from OCP.collections import Array1_gp_Pnt as TColgp_Array1OfPnt
 from OCP.GeomAPI import GeomAPI_PointsToBSpline
 
 from ocp_gordon.internal.misc import (

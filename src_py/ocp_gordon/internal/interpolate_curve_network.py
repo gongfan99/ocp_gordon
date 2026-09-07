@@ -17,7 +17,6 @@ from .curve_network_sorter import (
 )
 from .gordon_surface_builder import GordonSurfaceBuilder
 from .intersect_bsplines import IntersectBSplines
-from .misc import save_bsplines_to_file
 
 
 class GordonInterpolationError(Exception):

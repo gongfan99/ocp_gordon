@@ -1,18 +1,12 @@
 # %%
 # This file extends the class build123d.Face to include gorden_surface()
 
-import json
-from pathlib import Path
-from build123d import VectorLike, Vector, Edge, Face, ShapeList  # type: ignore
+from build123d import Edge, Face, ShapeList  # type: ignore
 from OCP.Geom import Geom_Curve, Geom_BSplineCurve, Geom_BSplineSurface
-from OCP.GeomAPI import GeomAPI_PointsToBSpline
 from OCP.GeomConvert import GeomConvert
-from OCP.TColgp import TColgp_Array1OfPnt
-from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger
 from OCP.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeFace
 from OCP.BRep import BRep_Tool
 from OCP.TopoDS import TopoDS_Face
-from OCP.gp import gp_Pnt
 from OCP.Precision import Precision
 
 # Import our Gordon interpolation module
@@ -21,7 +15,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # from ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
-from src_py.ocp_gordon import interpolate_curve_network, interpolate_curve_network_debug
+from src_py.ocp_gordon import interpolate_curve_network
 
 # %%
 def convert_bspline_to_edge(curve: Geom_Curve | Geom_BSplineCurve) -> Edge:

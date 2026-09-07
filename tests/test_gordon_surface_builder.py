@@ -1,14 +1,14 @@
 import pytest
-import numpy as np
-from typing import List  # Import List
 
 from OCP.gp import gp_Pnt
-from OCP.TColgp import TColgp_Array1OfPnt
-from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger
+from OCP.collections import (
+    Array1_gp_Pnt as TColgp_Array1OfPnt,
+    Array1_double as TColStd_Array1OfReal,
+    Array1_int as TColStd_Array1OfInteger,
+)
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
 
 from ocp_gordon.internal.gordon_surface_builder import GordonSurfaceBuilder
-from ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms, SurfaceDirection
 from ocp_gordon.internal.error import error, ErrorCode
 
 

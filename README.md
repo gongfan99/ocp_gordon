@@ -22,9 +22,13 @@ pip install ocp_gordon
 
 ## Dependencies
 
-- OCP (OpenCASCADE Python)
+- CadQuery OCP 8.x (`cadquery-ocp-novtk`)
 - NumPy
 - SciPy
+
+The OCP 8 bindings expose typed arrays through `OCP.collections` (for example,
+`Array1_gp_Pnt`, `Array2_gp_Pnt`, `Array1_double`, and `Array1_int`). Array
+elements are read with `.Value(...)` and written with `SetValue(...)`.
 
 ## Usage
 

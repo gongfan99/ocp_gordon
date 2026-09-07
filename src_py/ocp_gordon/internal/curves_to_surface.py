@@ -5,34 +5,19 @@ This module provides functionality to create surfaces by skinning
 a set of compatible B-spline curves.
 """
 
-from typing import List, Optional, Tuple
 
-import numpy as np
-from OCP.BSplCLib import BSplCLib  # For C++ BSplCLib equivalent
 from OCP.Geom import (
     Geom_BSplineCurve,
     Geom_BSplineSurface,
     Geom_Curve,
     Geom_TrimmedCurve,
 )
-from OCP.GeomAPI import (  # Equivalent to Geom2dAPI_ProjectPointOnCurve for 3D
-    GeomAPI_Interpolate,
-)
 from OCP.GeomConvert import GeomConvert
-from OCP.gp import gp_Pnt
-from OCP.Precision import Precision  # For C++ Precision equivalent
-from OCP.TColgp import (
-    TColgp_Array1OfPnt,
-    TColgp_Array2OfPnt,
-    TColgp_HArray1OfPnt,
-    TColgp_HArray1OfPnt2d,
-)
-from OCP.TColStd import (
-    TColStd_Array1OfInteger,
-    TColStd_Array1OfReal,
-    TColStd_Array2OfReal,
-    TColStd_HArray1OfInteger,
-    TColStd_HArray1OfReal,
+from OCP.collections import (
+    Array2_gp_Pnt,
+    HArray1_gp_Pnt,
+    Array1_int,
+    Array1_double,
 )
 
 from .bspline_algorithms import BSplineAlgorithms
@@ -185,9 +170,9 @@ class CurvesToSurface:
         num_poles_u = first_curve.NbPoles()
         num_splines = len(self._compatible_splines)
 
-        # TColgp_Array2OfPnt(RowMin, RowMax, ColMin, ColMax)
+        # Array2_gp_Pnt(RowMin, RowMax, ColMin, ColMax)
         # Rows correspond to poles in U direction, Columns correspond to splines (V direction)
-        control_points_matrix = TColgp_Array2OfPnt(1, num_poles_u, 1, num_splines)
+        control_points_matrix = Array2_gp_Pnt(1, num_poles_u, 1, num_splines)
 
         for spline_idx, spline in enumerate(self._compatible_splines, 1):
             for pole_idx in range(1, num_poles_u + 1):
@@ -255,14 +240,14 @@ class CurvesToSurface:
         mults_v = None
 
         # C++ uses Handle(TColgp_HArray2OfPnt) cpSurf;
-        # Python equivalent: a list of lists or a numpy array, then convert to TColgp_Array2OfPnt
-        # Or directly use TColgp_HArray1OfPnt for interpolation points.
-        cp_surf = TColgp_Array2OfPnt()
+        # Python equivalent: a list of lists or a numpy array, then convert to Array2_gp_Pnt.
+        # Or directly use HArray1_gp_Pnt for interpolation points.
+        cp_surf = Array2_gp_Pnt()
         interp_spline = None
 
-        # C++ uses Handle(TColgp_HArray1OfPnt) interpPointsVDir = new TColgp_HArray1OfPnt(1, static_cast<Standard_Integer>(nCurves));
+        # C++ uses Handle(TColgp_HArray1OfPnt) for these interpolation points.
         # This array will hold the poles for a given U index across all V curves.
-        interp_points_v_dir = TColgp_HArray1OfPnt(1, n_curves)
+        interp_points_v_dir = HArray1_gp_Pnt(1, n_curves)
 
         # C++ iterates from cpUIdx = 1 to numControlPointsU
         for cp_u_idx in range(1, num_control_points_u + 1):
@@ -301,23 +286,23 @@ class CurvesToSurface:
                 knots_v_list = []
                 for i in range(1, interp_spline.NbKnots() + 1):
                     knots_v_list.append(interp_spline.Knot(i))
-                knots_v = TColStd_Array1OfReal(1, len(knots_v_list))
+                knots_v = Array1_double(1, len(knots_v_list))
                 for i, k in enumerate(knots_v_list, 1):
                     knots_v.SetValue(i, k)
 
                 mults_v_list = []
                 for i in range(1, interp_spline.NbKnots() + 1):
                     mults_v_list.append(interp_spline.Multiplicity(i))
-                mults_v = TColStd_Array1OfInteger(1, len(mults_v_list))
+                mults_v = Array1_int(1, len(mults_v_list))
                 for i, m in enumerate(mults_v_list, 1):
                     mults_v.SetValue(i, m)
 
                 # Initialize the surface control points array
                 # C++ uses Handle(TColgp_HArray2OfPnt) cpSurf;
                 # cpSurf = new TColgp_HArray2OfPnt(1, static_cast<Standard_Integer>(numControlPointsU), 1, interpSpline->NbPoles());
-                # Python equivalent: TColgp_Array2OfPnt(RowMin, RowMax, ColMin, ColMax)
+                # Python equivalent: Array2_gp_Pnt(RowMin, RowMax, ColMin, ColMax)
                 # Rows = U direction (num_control_points_u), Cols = V direction (interpSpline.NbPoles())
-                cp_surf = TColgp_Array2OfPnt(
+                cp_surf = Array2_gp_Pnt(
                     1, num_control_points_u, 1, interp_spline.NbPoles()
                 )
 
@@ -337,14 +322,14 @@ class CurvesToSurface:
         knots_u_list = []
         for i in range(1, first_curve.NbKnots() + 1):
             knots_u_list.append(first_curve.Knot(i))
-        knots_u = TColStd_Array1OfReal(1, len(knots_u_list))
+        knots_u = Array1_double(1, len(knots_u_list))
         for i, k in enumerate(knots_u_list, 1):
             knots_u.SetValue(i, k)
 
         mults_u_list = []
         for i in range(1, first_curve.NbKnots() + 1):
             mults_u_list.append(first_curve.Multiplicity(i))
-        mults_u = TColStd_Array1OfInteger(1, len(mults_u_list))
+        mults_u = Array1_int(1, len(mults_u_list))
         for i, m in enumerate(mults_u_list, 1):
             mults_u.SetValue(i, m)
 

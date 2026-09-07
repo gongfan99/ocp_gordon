@@ -1,11 +1,10 @@
 import pytest
-import numpy as np
-from OCP.Geom import Geom_BSplineCurve, Geom_Curve
-from OCP.TColgp import TColgp_Array1OfPnt
+from OCP.Geom import Geom_BSplineCurve
+from OCP.collections import Array1_gp_Pnt as TColgp_Array1OfPnt
 from OCP.gp import gp_Pnt
 import math
 
-from ocp_gordon.internal.bspline_approx_interp import BSplineApproxInterp, ProjectResult
+from ocp_gordon.internal.bspline_approx_interp import BSplineApproxInterp
 from ocp_gordon.internal.error import error, ErrorCode
 from ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms
 

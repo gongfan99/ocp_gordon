@@ -6,14 +6,17 @@ that combines skinning surfaces and tensor product surfaces.
 """
 
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
-from OCP.gp import gp_Pnt, gp_XYZ
-from OCP.TColgp import TColgp_Array2OfPnt
-from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+from OCP.gp import gp_Pnt
+from OCP.collections import (
+    Array2_gp_Pnt,
+    Array1_int,
+    Array1_double,
+)
 
 from .bspline_algorithms import BSplineAlgorithms, SurfaceDirection
 from .curves_to_surface import CurvesToSurface
 from .error import ErrorCode, error
-from .misc import clone_bspline_surface, save_bsplines_to_object
+from .misc import clone_bspline_surface
 from .points_to_bspline_interpolation import PointsToBSplineInterpolation
 
 
@@ -97,7 +100,7 @@ class GordonSurfaceBuilder:
     # Due to circular import issues, these two functions are implemented directly in this file instead of being imported from bspline_algorithms.py
     @staticmethod
     def _points_to_surface_internal(
-        points: TColgp_Array2OfPnt,
+        points: Array2_gp_Pnt,
         u_params: list[float],
         v_params: list[float],
         make_u_closed: bool,
@@ -150,8 +153,8 @@ class GordonSurfaceBuilder:
 
             sorted_knots = sorted(list(all_knots))
 
-            common_knots = TColStd_Array1OfReal(1, len(sorted_knots))
-            common_mults = TColStd_Array1OfInteger(1, len(sorted_knots))
+            common_knots = Array1_double(1, len(sorted_knots))
+            common_mults = Array1_int(1, len(sorted_knots))
             for idx, knot in enumerate(sorted_knots, 1):
                 max_mult = 0
                 for surf in result_surfaces:
@@ -174,8 +177,8 @@ class GordonSurfaceBuilder:
 
             sorted_knots = sorted(list(all_knots))
 
-            common_knots = TColStd_Array1OfReal(1, len(sorted_knots))
-            common_mults = TColStd_Array1OfInteger(1, len(sorted_knots))
+            common_knots = Array1_double(1, len(sorted_knots))
+            common_mults = Array1_int(1, len(sorted_knots))
             for idx, knot in enumerate(sorted_knots, 1):
                 max_mult = 0
                 for surf in result_surfaces:
@@ -241,7 +244,7 @@ class GordonSurfaceBuilder:
         # Create intersection points array
         n_u_params = len(intersection_params_spline_u)
         n_v_params = len(intersection_params_spline_v)
-        intersection_points = TColgp_Array2OfPnt(1, n_u_params, 1, n_v_params)
+        intersection_points = Array2_gp_Pnt(1, n_u_params, 1, n_v_params)
 
         # Use splines in u-direction to get intersection points
         for spline_idx in range(len(profiles)):

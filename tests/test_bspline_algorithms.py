@@ -1,6 +1,5 @@
 import math
 
-import numpy as np
 import pytest
 from OCP.Geom import (
     Geom_BSplineCurve,
@@ -13,12 +12,15 @@ from OCP.Geom import (
 from OCP.GeomAPI import GeomAPI_ProjectPointOnCurve
 from OCP.gp import gp_Ax2, gp_Dir, gp_Pnt
 from OCP.Precision import Precision
-from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt, TColgp_HArray1OfPnt
-from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+from OCP.collections import (
+    Array1_gp_Pnt as TColgp_Array1OfPnt,
+    Array2_gp_Pnt as TColgp_Array2OfPnt,
+    HArray1_gp_Pnt as TColgp_HArray1OfPnt,
+)
+from OCP.collections import Array1_int as TColStd_Array1OfInteger, Array1_double as TColStd_Array1OfReal
 
 from ocp_gordon.internal.bspline_algorithms import (
     BSplineAlgorithms,
-    SurfaceDirection,
 )
 from ocp_gordon.internal.misc import clone_bspline
 

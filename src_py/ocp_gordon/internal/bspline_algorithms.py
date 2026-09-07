@@ -15,33 +15,30 @@ from OCP.BSplCLib import BSplCLib
 from OCP.Geom import (
     Geom_BSplineCurve,
     Geom_BSplineSurface,
-    Geom_Conic,
     Geom_Curve,
     Geom_TrimmedCurve,
 )
 from OCP.Geom2dAPI import Geom2dAPI_Interpolate, Geom2dAPI_ProjectPointOnCurve
-from OCP.GeomAbs import GeomAbs_C1, GeomAbs_C2
+from OCP.GeomAbs import GeomAbs_C2
 from OCP.GeomConvert import GeomConvert, GeomConvert_ApproxCurve
 from OCP.gp import gp_Pnt, gp_Pnt2d
 from OCP.math import math_Matrix
 from OCP.Precision import Precision
-from OCP.TColgp import (
-    TColgp_Array1OfPnt,
-    TColgp_Array2OfPnt,
-    TColgp_HArray1OfPnt,
-    TColgp_HArray1OfPnt2d,
-)
-from OCP.TColStd import (
-    TColStd_Array1OfInteger,
-    TColStd_Array1OfReal,
-    TColStd_HArray1OfInteger,
-    TColStd_HArray1OfReal,
+from OCP.collections import (
+    Array1_gp_Pnt,
+    Array2_gp_Pnt,
+    HArray1_gp_Pnt,
+    HArray1_gp_Pnt2d,
+    Array1_int,
+    Array1_double,
+    HArray1_int,
+    HArray1_double,
 )
 
 from .approx_result import ApproxResult
 from .error import ErrorCode, error  # Import ErrorCode
 from .intersect_bsplines import IntersectBSplines
-from .misc import clone_bspline, clone_bspline_surface, save_bsplines_to_file
+from .misc import clone_bspline, clone_bspline_surface
 
 
 # Define SurfaceDirection enum
@@ -136,28 +133,28 @@ class BSplineAlgorithms:
         return result
 
     @staticmethod
-    def is_u_dir_closed(points: TColgp_Array2OfPnt, tolerance: float) -> bool:
+    def is_u_dir_closed(points: Array2_gp_Pnt, tolerance: float) -> bool:
         u_dir_closed = True
         ulo = points.LowerRow()
         uhi = points.UpperRow()
         # check that first row and last row are the same
         for v_idx in range(points.LowerCol(), points.UpperCol() + 1):
-            pfirst = points(ulo, v_idx)  # Use __call__ for TColgp_Array2OfPnt
-            pLast = points(uhi, v_idx)  # Use __call__ for TColgp_Array2OfPnt
+            pfirst = points.Value(ulo, v_idx)
+            pLast = points.Value(uhi, v_idx)
             if not pfirst.IsEqual(pLast, tolerance):
                 u_dir_closed = False
                 break
         return u_dir_closed
 
     @staticmethod
-    def is_v_dir_closed(points: TColgp_Array2OfPnt, tolerance: float) -> bool:
+    def is_v_dir_closed(points: Array2_gp_Pnt, tolerance: float) -> bool:
         v_dir_closed = True
         vlo = points.LowerCol()
         vhi = points.UpperCol()
         for u_idx in range(points.LowerRow(), points.UpperRow() + 1):
-            if not points(u_idx, vlo).IsEqual(
-                points(u_idx, vhi), tolerance
-            ):  # Use __call__ for TColgp_Array2OfPnt
+            if not points.Value(u_idx, vlo).IsEqual(
+                points.Value(u_idx, vhi), tolerance
+            ):
                 v_dir_closed = False
                 break
         return v_dir_closed
@@ -227,7 +224,7 @@ class BSplineAlgorithms:
 
     @staticmethod
     def compute_params_bspline_curve(
-        points: TColgp_HArray1OfPnt, alpha: float = 0.5
+        points: HArray1_gp_Pnt, alpha: float = 0.5
     ) -> list[float]:
         """
         Computes parameters of a B-spline curve at given points.
@@ -248,7 +245,7 @@ class BSplineAlgorithms:
         total_length = 0.0
 
         # Convert handle array to regular array for access
-        # TColgp_HArray1OfPnt is a handle, need to access underlying array
+            # HArray1_gp_Pnt is a handle, need to access the underlying array.
         for i in range(1, n_points):
             p1 = points(i)
             p2 = points(i + 1)
@@ -457,21 +454,21 @@ class BSplineAlgorithms:
         return max_scale if max_scale > 0 else 1.0
 
     @staticmethod
-    def _scale_array2_of_pnt(points: TColgp_Array2OfPnt) -> float:
+    def _scale_array2_of_pnt(points: Array2_gp_Pnt) -> float:
         """
         Returns the scale of the point matrix.
         Matches the C++ scale(const TColgp_Array2OfPnt& points) function.
         """
         the_scale = 0.0
         for u_idx in range(points.LowerRow(), points.UpperRow() + 1):
-            p_first = points(u_idx, points.LowerCol())
+            p_first = points.Value(u_idx, points.LowerCol())
             for v_idx in range(points.LowerCol() + 1, points.UpperCol() + 1):
-                dist = p_first.Distance(points(u_idx, v_idx))
+                dist = p_first.Distance(points.Value(u_idx, v_idx))
                 the_scale = max(the_scale, dist)
         return the_scale
 
     @staticmethod
-    def _scale_array1_of_pnt(points: TColgp_Array1OfPnt) -> float:
+    def _scale_array1_of_pnt(points: Array1_gp_Pnt) -> float:
         """
         Returns the scale of the point list by searching for the largest distance between two points.
         Matches the C++ scale(const TColgp_Array1OfPnt& points) function.
@@ -490,8 +487,8 @@ class BSplineAlgorithms:
         obj: (
             Geom_BSplineCurve
             | list[Geom_BSplineCurve]
-            | TColgp_Array2OfPnt
-            | TColgp_Array1OfPnt
+            | Array2_gp_Pnt
+            | Array1_gp_Pnt
         ),
     ) -> float:
         """
@@ -502,9 +499,9 @@ class BSplineAlgorithms:
             return BSplineAlgorithms._scale_curve(obj)
         elif isinstance(obj, list):  # Assuming list of Geom_BSplineCurve
             return BSplineAlgorithms._scale_curve_list(obj)
-        elif isinstance(obj, TColgp_Array2OfPnt):
+        elif isinstance(obj, Array2_gp_Pnt):
             return BSplineAlgorithms._scale_array2_of_pnt(obj)
-        elif isinstance(obj, TColgp_Array1OfPnt):
+        elif isinstance(obj, Array1_gp_Pnt):
             return BSplineAlgorithms._scale_array1_of_pnt(obj)
         else:
             raise TypeError("Unsupported type for scale function")
@@ -631,14 +628,14 @@ class BSplineAlgorithms:
             raise error("parameter sizes dont match")
 
         # create a B-spline as a function for reparametrization
-        old_parameters_pnts = TColgp_HArray1OfPnt2d(1, len(old_parameters))
+        old_parameters_pnts = HArray1_gp_Pnt2d(1, len(old_parameters))
         for parameter_idx in range(len(old_parameters)):
             occIdx = parameter_idx + 1
             old_parameters_pnts.SetValue(
                 occIdx, gp_Pnt2d(old_parameters[parameter_idx], 0)
             )
 
-        # Convert new_parameters (List[float]) to TColStd_Array1OfReal
+        # Convert new_parameters (List[float]) to Array1_double.
         new_parameters_array = BSplineAlgorithms.to_array(new_parameters)
 
         # Correct order of arguments: old_parameters_pnts, PeriodicFlag, new_parameters_array
@@ -684,7 +681,7 @@ class BSplineAlgorithms:
         for kink in kinks:
             bisect.insort_left(parameters, kink)
 
-        points = TColgp_HArray1OfPnt(1, len(parameters))
+        points = HArray1_gp_Pnt(1, len(parameters))
         for i in range(1, len(parameters) + 1):
             oldParameter = reparametrizing_spline.Value(parameters[i - 1]).X()
             points.SetValue(i, spline.Value(oldParameter))
@@ -748,7 +745,7 @@ class BSplineAlgorithms:
 
         # Get current knots
         n_knots = spline.NbKnots()
-        knots_array = TColStd_Array1OfReal(1, n_knots)
+        knots_array = Array1_double(1, n_knots)
         for i in range(1, n_knots + 1):
             old_knot = spline.Knot(i)
             new_knot = a * old_knot + b
@@ -756,14 +753,14 @@ class BSplineAlgorithms:
 
         # Create new spline with transformed knots
         n_poles = spline.NbPoles()
-        poles = TColgp_Array1OfPnt(1, n_poles)
-        weights = TColStd_Array1OfReal(1, n_poles)
+        poles = Array1_gp_Pnt(1, n_poles)
+        weights = Array1_double(1, n_poles)
 
         for i in range(1, n_poles + 1):
             poles.SetValue(i, spline.Pole(i))
             weights.SetValue(i, spline.Weight(i))
 
-        mult_array = TColStd_Array1OfInteger(1, n_knots)
+        mult_array = Array1_int(1, n_knots)
         for i in range(1, n_knots + 1):
             mult_array.SetValue(i, spline.Multiplicity(i))
 
@@ -915,8 +912,8 @@ class BSplineAlgorithms:
     @staticmethod
     def bspline_basis_mat(
         degree: int,
-        knots: TColStd_Array1OfReal,
-        params: TColStd_Array1OfReal,
+        knots: Array1_double,
+        params: Array1_double,
         deriv_order: int = 0,
     ) -> np.ndarray:
         """
@@ -959,7 +956,7 @@ class BSplineAlgorithms:
         return basis_mat
 
     @staticmethod
-    def max_distance_of_bounding_box(points: TColgp_Array1OfPnt) -> float:
+    def max_distance_of_bounding_box(points: Array1_gp_Pnt) -> float:
         """
         Compute maximum distance between points in bounding box.
 
@@ -977,7 +974,7 @@ class BSplineAlgorithms:
         return max_distance
 
     @staticmethod
-    def is_closed(points: TColgp_HArray1OfPnt, c2_continuous: bool = False) -> bool:
+    def is_closed(points: HArray1_gp_Pnt, c2_continuous: bool = False) -> bool:
         """
         Check if points form a closed curve.
 
@@ -996,9 +993,9 @@ class BSplineAlgorithms:
         )
 
     @staticmethod
-    def to_array(vector: list[float]) -> TColStd_HArray1OfReal:
+    def to_array(vector: list[float]) -> HArray1_double:
         """
-        Convert Python list to TColStd_HArray1OfReal.
+        Convert a Python list to an HArray1_double.
 
         Args:
             vector: List of values
@@ -1006,13 +1003,13 @@ class BSplineAlgorithms:
         Returns:
             TColStd_HArray1OfReal handle
         """
-        array = TColStd_HArray1OfReal(1, len(vector))
+        array = HArray1_double(1, len(vector))
         for i, value in enumerate(vector, 1):
             array.SetValue(i, value)
         return array
 
     @staticmethod
-    def to_array_int(vector: list[int]) -> TColStd_HArray1OfInteger:
+    def to_array_int(vector: list[int]) -> HArray1_int:
         """
         Convert Python list to TColStd_HArray1OfInteger.
 
@@ -1022,46 +1019,46 @@ class BSplineAlgorithms:
         Returns:
             TColStd_HArray1OfInteger handle
         """
-        array = TColStd_HArray1OfInteger(1, len(vector))
+        array = HArray1_int(1, len(vector))
         for i, value in enumerate(vector, 1):
             array.SetValue(i, value)
         return array
 
     @staticmethod
     def _pnt_array2_get_column(
-        matrix: TColgp_Array2OfPnt, col_index: int
-    ) -> TColgp_HArray1OfPnt:
+        matrix: Array2_gp_Pnt, col_index: int
+    ) -> HArray1_gp_Pnt:
         """
-        Extracts a column from a TColgp_Array2OfPnt and returns it as a TColgp_HArray1OfPnt.
+        Extracts a column from an Array2_gp_Pnt as an HArray1_gp_Pnt.
         Matches the C++ array2GetColumn helper function.
         """
         lower_row = matrix.LowerRow()
         upper_row = matrix.UpperRow()
-        col_vector = TColgp_HArray1OfPnt(lower_row, upper_row)
+        col_vector = HArray1_gp_Pnt(lower_row, upper_row)
 
         for row_idx in range(lower_row, upper_row + 1):
-            col_vector.SetValue(row_idx, matrix(row_idx, col_index))
+            col_vector.SetValue(row_idx, matrix.Value(row_idx, col_index))
         return col_vector
 
     @staticmethod
     def _pnt_array2_get_row(
-        matrix: TColgp_Array2OfPnt, row_index: int
-    ) -> TColgp_HArray1OfPnt:
+        matrix: Array2_gp_Pnt, row_index: int
+    ) -> HArray1_gp_Pnt:
         """
-        Extracts a row from a TColgp_Array2OfPnt and returns it as a TColgp_HArray1OfPnt.
+        Extracts a row from an Array2_gp_Pnt as an HArray1_gp_Pnt.
         Matches the C++ array2GetRow helper function.
         """
         lower_col = matrix.LowerCol()
         upper_col = matrix.UpperCol()
-        row_vector = TColgp_HArray1OfPnt(lower_col, upper_col)
+        row_vector = HArray1_gp_Pnt(lower_col, upper_col)
 
         for col_idx in range(lower_col, upper_col + 1):
-            row_vector.SetValue(col_idx, matrix(row_index, col_idx))
+            row_vector.SetValue(col_idx, matrix.Value(row_index, col_idx))
         return row_vector
 
     @staticmethod
     def compute_params_bspline_surf(
-        points: TColgp_Array2OfPnt, alpha: float = 0.5
+        points: Array2_gp_Pnt, alpha: float = 0.5
     ) -> tuple[list[float], list[float]]:
         """
         Computes parameters for a B-spline surface in both u and v directions.
@@ -1077,7 +1074,7 @@ class BSplineAlgorithms:
 
         # Iterate over each column (v-index) to compute u-parameters for that "profile"
         for v_idx in range(points.LowerCol(), points.UpperCol() + 1):
-            # Extract the column as a 1D array of points (TColgp_HArray1OfPnt)
+            # Extract the column as a 1D array of points (HArray1_gp_Pnt).
             points_u_line = BSplineAlgorithms._pnt_array2_get_column(points, v_idx)
 
             # Compute parameters for this 1D array of points
@@ -1100,7 +1097,7 @@ class BSplineAlgorithms:
 
         # Iterate over each row (u-index) to compute v-parameters for that "guide"
         for u_idx in range(points.LowerRow(), points.UpperRow() + 1):
-            # Extract the row as a 1D array of points (TColgp_HArray1OfPnt)
+            # Extract the row as a 1D array of points (HArray1_gp_Pnt).
             points_v_line = BSplineAlgorithms._pnt_array2_get_row(points, u_idx)
 
             # Compute parameters for this 1D array of points

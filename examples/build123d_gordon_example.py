@@ -5,7 +5,7 @@ This example shows how to use the Gordon surface interpolation
 functionality with build123d's OCP integration.
 """
 # %%
-from typing import Union, List
+from typing import List
 from build123d import *  # type: ignore
 import numpy as np
 from ocp_vscode import show, Camera, set_defaults

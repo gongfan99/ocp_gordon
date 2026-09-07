@@ -10,10 +10,13 @@ import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_TrimmedCurve
 from OCP.GeomConvert import GeomConvert
 from OCP.BSplCLib import BSplCLib
-from OCP.TColgp import TColgp_Array1OfPnt, TColgp_HArray1OfPnt
-from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger, TColStd_HArray1OfReal
+from OCP.collections import (
+    Array1_gp_Pnt,
+    HArray1_gp_Pnt,
+    Array1_double,
+    Array1_int,
+)
 from OCP.gp import gp_Pnt
-from typing import List, Tuple, Optional, Union
 
 from .bspline_algorithms import BSplineAlgorithms
 
@@ -27,7 +30,7 @@ class PointsToBSplineInterpolation:
     """
     
     def __init__(self,
-                 points: TColgp_HArray1OfPnt,
+                 points: HArray1_gp_Pnt,
                  parameters: list[float] | None = None,
                  max_degree: int = 3,
                  continuous_if_closed: bool = False):
@@ -137,7 +140,7 @@ class PointsToBSplineInterpolation:
         if self.needs_shifting():
             n_ctrl_pnts += 1
         
-        poles = TColgp_Array1OfPnt(1, n_ctrl_pnts)
+        poles = Array1_gp_Pnt(1, n_ctrl_pnts)
         
         # Fill control points from solution
         for i in range(n_params):
@@ -167,8 +170,8 @@ class PointsToBSplineInterpolation:
         occ_knots = BSplineAlgorithms.to_array(knots)
         knotsLen = BSplCLib.KnotsLength_s(occ_knots)
 
-        occ_unique_knots = TColStd_Array1OfReal(1, knotsLen)
-        occ_multiplicities = TColStd_Array1OfInteger(1, knotsLen)
+        occ_unique_knots = Array1_double(1, knotsLen)
+        occ_multiplicities = Array1_int(1, knotsLen)
         BSplCLib.Knots_s(occ_knots, occ_unique_knots, occ_multiplicities)
 
         # print(f'params={params}')

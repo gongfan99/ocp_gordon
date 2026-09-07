@@ -12,12 +12,9 @@ SPDX-FileCopyrightText: 2017 German Aerospace Center (DLR)
 Created: 2017 Martin Siggel <Martin.Siggel@dlr.de>
 """
 
-import math
-from typing import List, Tuple
 
 import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_Curve
-from OCP.gp import gp_Pnt
 
 from .error import error
 

@@ -1,16 +1,15 @@
 import pytest
 import numpy as np
 from OCP.gp import gp_Pnt
-from OCP.TColgp import TColgp_HArray1OfPnt, TColgp_Array1OfPnt
+from OCP.collections import (
+    HArray1_gp_Pnt as TColgp_HArray1OfPnt,
+    Array1_gp_Pnt as TColgp_Array1OfPnt,
+)
 from OCP.Geom import Geom_BSplineCurve
-from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger
 
 from ocp_gordon.internal.points_to_bspline_interpolation import (
     PointsToBSplineInterpolation,
 )
-from ocp_gordon.internal.bspline_algorithms import (
-    BSplineAlgorithms,
-)  # Assuming BSplineAlgorithms is correctly implemented
 
 
 # Helper function to create TColgp_HArray1OfPnt from a list of numpy arrays or gp_Pnt

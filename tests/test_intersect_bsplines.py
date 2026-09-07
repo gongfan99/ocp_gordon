@@ -7,14 +7,13 @@ using recursive subdivision and optimization methods.
 
 import math
 
-import numpy as np
 import pytest
 from OCP.Geom import Geom_BSplineCurve, Geom_Circle
 from OCP.GeomAbs import GeomAbs_Shape
 from OCP.GeomAPI import GeomAPI_PointsToBSpline
 from OCP.GeomConvert import GeomConvert
 from OCP.gp import gp_Ax1, gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf
-from OCP.TColgp import TColgp_Array1OfPnt
+from OCP.collections import Array1_gp_Pnt as TColgp_Array1OfPnt
 
 # Import the module to test
 from ocp_gordon.internal.intersect_bsplines import (
@@ -26,7 +25,6 @@ from ocp_gordon.internal.intersect_bsplines import (
 from ocp_gordon.internal.misc import (
     clone_bspline,
     load_bsplines_from_object,
-    save_bsplines_to_file,
 )
 
 

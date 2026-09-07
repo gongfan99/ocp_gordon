@@ -6,14 +6,16 @@ Created: 2019-04-24 Martin Siggel <Martin.Siggel@dlr.de>
 """
 
 import math
-from typing import List, Optional, Tuple
 
 import numpy as np
 from OCP.BSplCLib import BSplCLib  # For KnotSequence
 from OCP.Geom import Geom_BSplineCurve, Geom_Curve
 from OCP.gp import gp_Pnt, gp_Vec
-from OCP.TColgp import TColgp_Array1OfPnt
-from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+from OCP.collections import (
+    Array1_gp_Pnt,
+    Array1_int,
+    Array1_double,
+)
 
 from .approx_result import ApproxResult
 from .bspline_algorithms import BSplineAlgorithms  # For bspline_basis_mat, scale, etc.
@@ -37,12 +39,12 @@ class BSplineApproxInterp:
 
     def __init__(
         self,
-        points: TColgp_Array1OfPnt,
+        points: Array1_gp_Pnt,
         n_control_points: int,
         degree: int = 3,
         continuous_if_closed: bool = False,
     ):
-        self.m_pnts = TColgp_Array1OfPnt(1, points.Length())
+        self.m_pnts = Array1_gp_Pnt(1, points.Length())
         for i in range(points.Lower(), points.Upper() + 1):
             self.m_pnts.SetValue(i, points(i))
 
@@ -66,7 +68,7 @@ class BSplineApproxInterp:
         if with_kink:
             self.m_index_of_kinks.append(point_index)
 
-    def _max_distance_of_bounding_box(self, points: TColgp_Array1OfPnt) -> float:
+    def _max_distance_of_bounding_box(self, points: Array1_gp_Pnt) -> float:
         if points.Length() == 0:
             return 0.0
 
@@ -169,11 +171,11 @@ class BSplineApproxInterp:
         knots_list, mults_list = self._compute_knots(self.m_ncp, params)
 
         # Convert to OCP arrays
-        knots_array = TColStd_Array1OfReal(1, len(knots_list))
+        knots_array = Array1_double(1, len(knots_list))
         for i, k in enumerate(knots_list, 1):
             knots_array.SetValue(i, k)
 
-        mults_array = TColStd_Array1OfInteger(1, len(mults_list))
+        mults_array = Array1_int(1, len(mults_list))
         for i, m in enumerate(mults_list, 1):
             mults_array.SetValue(i, m)
 
@@ -193,11 +195,11 @@ class BSplineApproxInterp:
 
         knots_list, mults_list = self._compute_knots(self.m_ncp, params)
 
-        knots_array = TColStd_Array1OfReal(1, len(knots_list))
+        knots_array = Array1_double(1, len(knots_list))
         for i, k in enumerate(knots_list, 1):
             knots_array.SetValue(i, k)
 
-        mults_array = TColStd_Array1OfInteger(1, len(mults_list))
+        mults_array = Array1_int(1, len(mults_list))
         for i, m in enumerate(mults_list, 1):
             mults_array.SetValue(i, m)
 
@@ -288,14 +290,14 @@ class BSplineApproxInterp:
         n_ctr_pnts: int,
         contin_cons: int,
         params: list[float],
-        flat_knots: TColStd_Array1OfReal,
+        flat_knots: Array1_double,
     ) -> np.ndarray:
         continuity_entries = np.zeros((contin_cons, n_ctr_pnts))
 
-        # Need to convert single float to TColStd_Array1OfReal for bspline_basis_mat
-        continuity_params1 = TColStd_Array1OfReal(1, 1)
+        # Need to convert single float to Array1_double for bspline_basis_mat.
+        continuity_params1 = Array1_double(1, 1)
         continuity_params1.SetValue(1, params[0])
-        continuity_params2 = TColStd_Array1OfReal(1, 1)
+        continuity_params2 = Array1_double(1, 1)
         continuity_params2.SetValue(1, params[len(params) - 1])
 
         diff1_1 = BSplineAlgorithms.bspline_basis_mat(
@@ -333,12 +335,12 @@ class BSplineApproxInterp:
     def _solve(
         self,
         params: list[float],
-        knots: TColStd_Array1OfReal,
-        mults: TColStd_Array1OfInteger,
+        knots: Array1_double,
+        mults: Array1_int,
     ) -> ApproxResult:
         # compute flat knots
         n_flat_knots = BSplCLib.KnotSequenceLength_s(mults, self.m_degree, False)
-        flat_knots_array = TColStd_Array1OfReal(1, n_flat_knots)
+        flat_knots_array = Array1_double(1, n_flat_knots)
         BSplCLib.KnotSequence_s(knots, mults, flat_knots_array)
 
         n_approximated = len(self.m_index_of_approximated)
@@ -378,7 +380,7 @@ class BSplineApproxInterp:
 
         if n_approximated > 0:
             app_params_list = [params[idx] for idx in self.m_index_of_approximated]
-            app_params_array = TColStd_Array1OfReal(1, n_approximated)
+            app_params_array = Array1_double(1, n_approximated)
             for i, p in enumerate(app_params_list, 1):
                 app_params_array.SetValue(i, p)
 
@@ -404,7 +406,7 @@ class BSplineApproxInterp:
                 interp_params_list = [
                     params[idx] for idx in self.m_index_of_interpolated
                 ]
-                interp_params_array = TColStd_Array1OfReal(1, n_interpolated)
+                interp_params_array = Array1_double(1, n_interpolated)
                 for i, p in enumerate(interp_params_list, 1):
                     interp_params_array.SetValue(i, p)
 
@@ -440,7 +442,7 @@ class BSplineApproxInterp:
         except np.linalg.LinAlgError:
             raise error("Singular Matrix", ErrorCode.MATH_ERROR)
 
-        poles = TColgp_Array1OfPnt(1, n_ctr_pnts)
+        poles = Array1_gp_Pnt(1, n_ctr_pnts)
         for i in range(n_ctr_pnts):
             pnt = gp_Pnt(cp_full[i][0], cp_full[i][1], cp_full[i][2])
             poles.SetValue(i + 1, pnt)

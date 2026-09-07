@@ -1,35 +1,28 @@
-from typing import List  # Import List
 
 import numpy as np
 import pytest
 
 # Import actual OCP dependencies
-from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface, Geom_Curve
+from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
 from OCP.GeomAbs import GeomAbs_Shape
 from OCP.GeomAPI import GeomAPI_Interpolate, GeomAPI_PointsToBSpline
 from OCP.gp import gp_Pnt
-from OCP.Precision import Precision
-from OCP.TColgp import TColgp_Array1OfPnt, TColgp_HArray1OfPnt
-from OCP.TColStd import TColStd_Array1OfInteger, TColStd_Array1OfReal
+from OCP.collections import (
+    Array1_gp_Pnt as TColgp_Array1OfPnt,
+    HArray1_gp_Pnt as TColgp_HArray1OfPnt,
+    Array1_int as TColStd_Array1OfInteger,
+    Array1_double as TColStd_Array1OfReal,
+)
 
 # Import actual internal dependencies
-from ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms
-from ocp_gordon.internal.curve_network_sorter import CurveNetworkSorter
-from ocp_gordon.internal.error import ErrorCode, error
-from ocp_gordon.internal.gordon_surface_builder import GordonSurfaceBuilder
 from ocp_gordon.internal.interpolate_curve_network import (
-    CompatibilityError,
     InterpolateCurveNetwork,
-    IntersectionError,
     InvalidInputError,
-    SurfaceConstructionError,
     interpolate_curve_network,
 )
-from ocp_gordon.internal.intersect_bsplines import IntersectBSplines
 from ocp_gordon.internal.misc import (
     concat_two_bsplines,
     load_bsplines_from_object,
-    save_bsplines_to_file,
 )
 
 

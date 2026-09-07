@@ -1,15 +1,14 @@
 import pytest
-import numpy as np
 
 from OCP.gp import gp_Pnt
-from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt
-from OCP.TColStd import TColStd_Array1OfReal, TColStd_Array1OfInteger
+from OCP.collections import (
+    Array1_gp_Pnt as TColgp_Array1OfPnt,
+    Array1_double as TColStd_Array1OfReal,
+    Array1_int as TColStd_Array1OfInteger,
+)
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
-from OCP.GeomConvert import GeomConvert
 
 from ocp_gordon.internal.curves_to_surface import CurvesToSurface, clamp_bspline
-from ocp_gordon.internal.bspline_algorithms import BSplineAlgorithms
-from ocp_gordon.internal.error import ErrorCode, error
 
 
 # Helper to create a simple B-spline curve for testing

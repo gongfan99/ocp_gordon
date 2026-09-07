@@ -1,16 +1,16 @@
 import json
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_BSplineSurface
 from OCP.GeomConvert import GeomConvert_CompCurveToBSplineCurve
 from OCP.gp import gp_Pnt
 from OCP.Precision import Precision
-from OCP.TColgp import TColgp_Array1OfPnt, TColgp_Array2OfPnt
-from OCP.TColStd import (
-    TColStd_Array1OfInteger,
-    TColStd_Array1OfReal,
-    TColStd_Array2OfReal,
+from OCP.collections import (
+    Array1_gp_Pnt,
+    Array1_int,
+    Array1_double,
 )
 from scipy.optimize import minimize
 
@@ -122,9 +122,6 @@ class math_Vector:
         return f"math_Vector(lower={self.lower_index}, upper={self.upper_index}, data={self.data})"
 
 
-# OCP Geom_BSplineCurve does not have the DownCast() function.
-# Hence, to clone a bspline, instead of using Geom_BSplineCurve.DownCast(bspline.Copy()),
-# you should use clone_bspline()
 def clone_bspline(spline: Geom_BSplineCurve) -> Geom_BSplineCurve:
     """
     Clone a B-spline curve.
@@ -135,29 +132,11 @@ def clone_bspline(spline: Geom_BSplineCurve) -> Geom_BSplineCurve:
     Returns:
         New B-spline
     """
-    # Create a copy by manually constructing from existing data
-    # Get poles
-    poles = TColgp_Array1OfPnt(1, spline.NbPoles())
-    spline.Poles(poles)
+    copied = spline.Copy()
+    if not isinstance(copied, Geom_BSplineCurve):
+        raise TypeError(f"Expected Geom_BSplineCurve, got {type(copied)!r}")
 
-    # Get weights
-    weights = TColStd_Array1OfReal(1, spline.NbPoles())
-    spline.Weights(weights)
-
-    # Get knots
-    knots = TColStd_Array1OfReal(1, spline.NbKnots())
-    spline.Knots(knots)
-
-    # Get multiplicities
-    mults = TColStd_Array1OfInteger(1, spline.NbKnots())
-    spline.Multiplicities(mults)
-
-    # Create new spline
-    new_spline = Geom_BSplineCurve(
-        poles, weights, knots, mults, spline.Degree(), spline.IsPeriodic()
-    )
-
-    return new_spline
+    return cast(Geom_BSplineCurve, copied)
 
 
 def clone_bspline_surface(surface: Geom_BSplineSurface) -> Geom_BSplineSurface:
@@ -170,45 +149,11 @@ def clone_bspline_surface(surface: Geom_BSplineSurface) -> Geom_BSplineSurface:
     Returns:
         New B-spline surface
     """
-    # Get poles
-    poles = TColgp_Array2OfPnt(1, surface.NbUPoles(), 1, surface.NbVPoles())
-    surface.Poles(poles)
+    copied = surface.Copy()
+    if not isinstance(copied, Geom_BSplineSurface):
+        raise TypeError(f"Expected Geom_BSplineSurface, got {type(copied)!r}")
 
-    # Get weights
-    weights = TColStd_Array2OfReal(1, surface.NbUPoles(), 1, surface.NbVPoles())
-    surface.Weights(weights)
-
-    # Get U knots
-    u_knots = TColStd_Array1OfReal(1, surface.NbUKnots())
-    surface.UKnots(u_knots)
-
-    # Get V knots
-    v_knots = TColStd_Array1OfReal(1, surface.NbVKnots())
-    surface.VKnots(v_knots)
-
-    # Get U multiplicities
-    u_mults = TColStd_Array1OfInteger(1, surface.NbUKnots())
-    surface.UMultiplicities(u_mults)
-
-    # Get V multiplicities
-    v_mults = TColStd_Array1OfInteger(1, surface.NbVKnots())
-    surface.VMultiplicities(v_mults)
-
-    # Create new surface
-    new_surface = Geom_BSplineSurface(
-        poles,
-        weights,
-        u_knots,
-        v_knots,
-        u_mults,
-        v_mults,
-        surface.UDegree(),
-        surface.VDegree(),
-        surface.IsUPeriodic(),
-        surface.IsVPeriodic(),
-    )
-
-    return new_surface
+    return cast(Geom_BSplineSurface, copied)
 
 
 class math_MultipleVarFunctionWithGradient:  # placeholder parent class
@@ -375,23 +320,23 @@ def load_bsplines_from_object(objs: list):
     for obj in objs:
         # Get poles
         NbPoles = len(obj["poles"])
-        poles = TColgp_Array1OfPnt(1, NbPoles)
+        poles = Array1_gp_Pnt(1, NbPoles)
         for i in range(NbPoles):
             poles.SetValue(i + 1, gp_Pnt(*obj["poles"][i]))
 
         # Get weights
-        weights = TColStd_Array1OfReal(1, NbPoles)
+        weights = Array1_double(1, NbPoles)
         for i in range(NbPoles):
             weights.SetValue(i + 1, obj["weights"][i])
 
         # Get knots
         NbKnots = len(obj["knots"])
-        knot_array = TColStd_Array1OfReal(1, NbKnots)
+        knot_array = Array1_double(1, NbKnots)
         for i in range(NbKnots):
             knot_array.SetValue(i + 1, obj["knots"][i])
 
         # Get multiplicities
-        mult_array = TColStd_Array1OfInteger(1, NbKnots)
+        mult_array = Array1_int(1, NbKnots)
         for i in range(NbKnots):
             mult_array.SetValue(i + 1, obj["mults"][i])
 

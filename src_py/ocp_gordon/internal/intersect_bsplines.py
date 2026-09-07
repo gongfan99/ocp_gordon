@@ -1,11 +1,11 @@
 import functools
 import math
-from typing import Any, Callable, TypedDict
+from typing import Callable, TypedDict
 
 import numpy as np
 from OCP.Geom import Geom_BSplineCurve, Geom_Curve
 from OCP.gp import gp_Pnt, gp_Vec
-from scipy.optimize import OptimizeResult, minimize_scalar
+from scipy.optimize import minimize_scalar
 
 from .misc import (
     Standard_Real,
