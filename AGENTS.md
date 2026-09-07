@@ -8,7 +8,7 @@
 - Tests: `tests/`
 - Examples: `examples/`
 - Separate C++ reference/source: `src_cpp/`
-- Supported Python: `>=3.10, <3.15`
+- Supported Python: `>=3.11, <3.15`
 - Runtime dependencies: `cadquery_ocp_proxy`, NumPy, SciPy
 - Test dependencies: `pytest`, `cadquery_ocp_novtk`
 
