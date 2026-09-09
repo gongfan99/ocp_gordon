@@ -18,7 +18,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "cadquery-ocp-novtk >= 8.0, < 8.1",
+    "cadquery_ocp_proxy >= 8.0, < 8.1",
     "numpy >= 2, < 3",
     "scipy",
 ]
@@ -43,6 +43,7 @@ Used-by = "https://github.com/gumyr/build123d"
 [project.optional-dependencies]
 test = [
     "pytest",
+    "cadquery_ocp_novtk >=8.0, < 8.1",
 ]
 
 # typing stubs for the OCP CAD kernel
